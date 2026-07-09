@@ -1,0 +1,3 @@
+2026-07-09 18:22:27.102 | INFO     | app.core.logging:setup_logging:43 | Logging configured | env=development | level=INFO
+2026-07-09 18:22:27.102 | INFO     | app.main:lifespan:17 | Starting DataForge v1.0.0 | env=development
+2026-07-09 18:22:27.322 | INFO     | app.main:lifespan:27 | Database connection verified
