@@ -1,4 +1,4 @@
-import mimetypes
+import uuid
 from enum import Enum
 from pathlib import Path
 
@@ -17,14 +17,12 @@ class SupportedFileType(str, Enum):
 ALLOWED_EXTENSIONS: dict[str, SupportedFileType] = {
     ".csv": SupportedFileType.CSV,
     ".xlsx": SupportedFileType.EXCEL,
-    ".xls": SupportedFileType.EXCEL,
     ".json": SupportedFileType.JSON,
 }
 
 ALLOWED_MIME_TYPES: dict[str, SupportedFileType] = {
     "text/csv": SupportedFileType.CSV,
     "application/csv": SupportedFileType.CSV,
-    "application/vnd.ms-excel": SupportedFileType.EXCEL,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": SupportedFileType.EXCEL,
     "application/json": SupportedFileType.JSON,
     "text/json": SupportedFileType.JSON,
@@ -37,34 +35,74 @@ def get_file_extension(filename: str | None) -> str:
     return Path(filename).suffix.lower()
 
 
-def detect_file_type(filename: str, content_type: str | None) -> SupportedFileType:
+def validate_extension(filename: str) -> SupportedFileType:
     extension = get_file_extension(filename)
 
-    if extension in ALLOWED_EXTENSIONS:
-        return ALLOWED_EXTENSIONS[extension]
+    if extension not in ALLOWED_EXTENSIONS:
+        raise FileValidationError(
+            message=(
+                "Unsupported file extension. Allowed extensions: "
+                ".csv, .xlsx, .json"
+            ),
+        )
 
-    if content_type:
-        normalized_content_type = content_type.split(";")[0].strip().lower()
-        if normalized_content_type in ALLOWED_MIME_TYPES:
-            return ALLOWED_MIME_TYPES[normalized_content_type]
+    return ALLOWED_EXTENSIONS[extension]
 
-    guessed_type, _ = mimetypes.guess_type(filename)
-    if guessed_type and guessed_type in ALLOWED_MIME_TYPES:
-        return ALLOWED_MIME_TYPES[guessed_type]
+
+def validate_mime_type(content_type: str | None) -> SupportedFileType:
+    if not content_type:
+        raise FileValidationError(
+            message="Content-Type header is required",
+            error_code=ErrorCode.VALIDATION_ERROR,
+        )
+
+    normalized_content_type = content_type.split(";")[0].strip().lower()
+
+    if normalized_content_type in ALLOWED_MIME_TYPES:
+        return ALLOWED_MIME_TYPES[normalized_content_type]
 
     raise FileValidationError(
         message=(
-            "Unsupported file type. Allowed types: CSV (.csv), "
-            "Excel (.xlsx, .xls), JSON (.json)"
+            "Unsupported MIME type. Allowed types: text/csv, application/csv, "
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, "
+            "application/json"
         ),
     )
 
 
+def validate_file_type(filename: str, content_type: str | None) -> SupportedFileType:
+    extension_type = validate_extension(filename)
+    mime_type = validate_mime_type(content_type)
+
+    if extension_type != mime_type:
+        raise FileValidationError(
+            message=(
+                f"File extension and MIME type mismatch: "
+                f"extension indicates '{extension_type.value}', "
+                f"MIME type indicates '{mime_type.value}'"
+            ),
+        )
+
+    return extension_type
+
+
+def generate_unique_filename(original_filename: str, upload_dir: Path) -> str:
+    extension = get_file_extension(original_filename)
+
+    while True:
+        stored_filename = f"{uuid.uuid4()}{extension}"
+        if not (upload_dir / stored_filename).exists():
+            return stored_filename
+
+
 async def validate_upload_file(file: UploadFile) -> tuple[bytes, SupportedFileType]:
     if not file.filename:
-        raise FileValidationError(message="Filename is required")
+        raise FileValidationError(
+            message="Filename is required",
+            error_code=ErrorCode.VALIDATION_ERROR,
+        )
 
-    file_type = detect_file_type(file.filename, file.content_type)
+    file_type = validate_file_type(file.filename, file.content_type)
     content = await file.read()
 
     if not content:
@@ -77,16 +115,3 @@ async def validate_upload_file(file: UploadFile) -> tuple[bytes, SupportedFileTy
         raise FileSizeExceededError(max_size_mb=settings.max_upload_size_mb)
 
     return content, file_type
-
-
-def generate_safe_filename(original_filename: str) -> str:
-    from datetime import datetime, timezone
-    import re
-    import uuid
-
-    extension = get_file_extension(original_filename)
-    stem = Path(original_filename).stem
-    safe_stem = re.sub(r"[^\w\-]+", "_", stem).strip("_") or "upload"
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    unique_id = uuid.uuid4().hex[:8]
-    return f"{safe_stem}_{timestamp}_{unique_id}{extension}"

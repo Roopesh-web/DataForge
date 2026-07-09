@@ -11,8 +11,10 @@ from app.utils.exceptions import (
 )
 from app.utils.file_validation import (
     SupportedFileType,
-    detect_file_type,
-    generate_safe_filename,
+    generate_unique_filename,
+    validate_extension,
+    validate_file_type,
+    validate_mime_type,
     validate_upload_file,
 )
 
@@ -23,8 +25,10 @@ __all__ = [
     "FileValidationError",
     "UploadFailedError",
     "SupportedFileType",
-    "detect_file_type",
-    "generate_safe_filename",
+    "generate_unique_filename",
+    "validate_extension",
+    "validate_file_type",
+    "validate_mime_type",
     "validate_upload_file",
     "register_exception_handlers",
     "RequestIDMiddleware",

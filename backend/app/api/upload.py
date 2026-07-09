@@ -12,8 +12,9 @@ router = APIRouter(tags=["Upload"])
     status_code=status.HTTP_201_CREATED,
     summary="Upload a data file",
     description=(
-        "Upload a CSV, Excel, or JSON file. "
-        f"Maximum file size is configurable (default 100 MB)."
+        "Upload a CSV, Excel (.xlsx), or JSON file. "
+        "Validates both file extension and MIME type. "
+        "Maximum file size is enforced from application configuration."
     ),
     responses={
         400: {"description": "Invalid file type or empty file"},
@@ -22,7 +23,7 @@ router = APIRouter(tags=["Upload"])
     },
 )
 async def upload_file(
-    file: UploadFile = File(..., description="CSV, Excel (.xlsx/.xls), or JSON file"),
+    file: UploadFile = File(..., description="CSV, Excel (.xlsx), or JSON file"),
     upload_service: UploadService = Depends(get_upload_service),
 ) -> UploadResponse:
     return await upload_service.process_upload(file)
