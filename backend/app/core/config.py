@@ -68,6 +68,12 @@ class Settings(BaseModel):
 
     @property
     def database_url(self) -> str:
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            if database_url.startswith("postgres://"):
+                return database_url.replace("postgres://", "postgresql+psycopg://", 1)
+            return database_url
+
         return (
             f"postgresql+psycopg://{self.database_user}:{self.database_password}"
             f"@{self.database_host}:{self.database_port}/{self.database_name}"
