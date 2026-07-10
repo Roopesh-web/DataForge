@@ -16,6 +16,7 @@ from dashboard.api_client import (
     analyze_dataset,
     check_health,
     profile_dataset,
+    quality_check,
     resolve_content_type,
     upload_file,
 )
@@ -34,6 +35,7 @@ NAV_OPTIONS = {
     "📤 File Upload": "upload",
     "📋 Dataset Overview": "overview",
     "📈 Analytics Explorer": "analytics",
+    "✅ Data Quality": "quality",
 }
 NAV_LABELS = list(NAV_OPTIONS.keys())
 NAV_BY_VALUE = {value: label for label, value in NAV_OPTIONS.items()}
@@ -44,6 +46,7 @@ def init_session_state() -> None:
         "upload_result": None,
         "profile_result": None,
         "analytics_result": None,
+        "quality_result": None,
         "stored_filename": None,
         "current_page": "upload",
     }
@@ -138,6 +141,7 @@ def render_upload_page() -> None:
                         st.session_state.stored_filename = result["stored_filename"]
                         st.session_state.profile_result = None
                         st.session_state.analytics_result = None
+                        st.session_state.quality_result = None
                         st.success("✅ File uploaded successfully.")
                     except APIError as exc:
                         st.error(f"❌ Upload failed: {exc.message}")
@@ -149,13 +153,16 @@ def render_upload_page() -> None:
         st.markdown(
             "After uploading, profile the dataset for schema insights or run full analytics."
         )
-        action_cols = st.columns(2)
+        action_cols = st.columns(3)
         with action_cols[0]:
             if st.button("🔍 Profile Dataset", use_container_width=True, key="btn_profile_upload"):
                 _run_profile()
         with action_cols[1]:
             if st.button("📊 Run Analytics", use_container_width=True, key="btn_analytics_upload"):
                 _run_analytics()
+        with action_cols[2]:
+            if st.button("✅ Quality Check", use_container_width=True, key="btn_quality_upload"):
+                _run_quality()
 
     if st.session_state.upload_result:
         upload = st.session_state.upload_result
@@ -203,6 +210,21 @@ def _run_analytics() -> None:
             st.error(f"❌ Analytics failed: {exc.message}")
         except Exception as exc:
             st.error(f"❌ Analytics failed: {exc}")
+
+
+def _run_quality() -> None:
+    if not st.session_state.stored_filename:
+        render_info_card("Upload a file before running quality checks.", "warning")
+        return
+
+    with st.spinner("Running data quality checks..."):
+        try:
+            st.session_state.quality_result = quality_check(st.session_state.stored_filename)
+            st.success("✅ Quality check completed successfully.")
+        except APIError as exc:
+            st.error(f"❌ Quality check failed: {exc.message}")
+        except Exception as exc:
+            st.error(f"❌ Quality check failed: {exc}")
 
 
 def render_overview_page() -> None:
@@ -592,6 +614,68 @@ def _render_charts(
             render_info_card("No categorical columns available.", "info")
 
 
+def render_quality_page() -> None:
+    render_hero(
+        "Data Quality",
+        "Enterprise validation checks for nulls, duplicates, types, ranges, regex, and categorical rules.",
+        "✅",
+    )
+
+    if not st.session_state.stored_filename:
+        render_info_card("Upload a dataset on the File Upload page to get started.", "info")
+        return
+
+    if st.button("✅ Run Quality Check", type="primary", key="btn_run_quality_page"):
+        _run_quality()
+
+    quality = st.session_state.quality_result
+    if not quality:
+        render_info_card("Run a quality check to view validation results.", "warning")
+        return
+
+    summary = quality.get("validation_summary", {})
+    render_kpi_cards(
+        [
+            ("⭐", "Quality Score", f"{summary.get('quality_score', 0):.1f}", "Weighted score out of 100"),
+            ("✅", "Passed Rules", str(summary.get("passed_rules", 0)), "Rules that passed validation"),
+            ("❌", "Failed Rules", str(summary.get("failed_rules", 0)), "Rules that failed validation"),
+            ("📋", "Total Rules", str(summary.get("total_rules", 0)), "Rules evaluated"),
+        ]
+    )
+
+    tabs = st.tabs(["📌 Summary", "✅ Passed Rules", "❌ Failed Rules", "📄 Report"])
+
+    with tabs[0]:
+        col_left, col_right = st.columns(2, gap="large")
+        with col_left:
+            st.metric("Quality Score", f"{summary.get('quality_score', 0):.2f}")
+            st.metric("Passed Rules", summary.get("passed_rules", 0))
+        with col_right:
+            st.metric("Failed Rules", summary.get("failed_rules", 0))
+            st.metric("Total Rules", summary.get("total_rules", 0))
+
+        with st.expander("📎 Validation Summary Details", expanded=False):
+            st.json(summary)
+
+    with tabs[1]:
+        passed_rules = quality.get("passed_rules", [])
+        if passed_rules:
+            st.dataframe(pd.DataFrame(passed_rules), use_container_width=True, hide_index=True)
+        else:
+            render_info_card("No passed rules to display.", "info")
+
+    with tabs[2]:
+        failed_rules = quality.get("failed_rules", [])
+        if failed_rules:
+            st.dataframe(pd.DataFrame(failed_rules), use_container_width=True, hide_index=True)
+        else:
+            render_info_card("No failed rules. Dataset passed all quality checks.", "success")
+
+    with tabs[3]:
+        with st.expander("📄 Validation Report", expanded=True):
+            st.json(quality.get("validation_report", {}))
+
+
 def main() -> None:
     st.set_page_config(
         page_title=PAGE_TITLE,
@@ -608,8 +692,10 @@ def main() -> None:
         render_upload_page()
     elif page == "overview":
         render_overview_page()
-    else:
+    elif page == "analytics":
         render_analytics_page()
+    else:
+        render_quality_page()
 
 
 if __name__ == "__main__":

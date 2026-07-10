@@ -5,6 +5,7 @@ Production-ready Streamlit dashboard for the DataForge platform. The dashboard c
 - `POST /upload`
 - `POST /profile`
 - `POST /analytics`
+- `POST /quality-check`
 - `GET /health`
 
 ## Prerequisites
@@ -73,6 +74,7 @@ The dashboard opens at **http://localhost:8501**.
 4. Click **Profile Dataset** and/or **Run Analytics**.
 5. Navigate to **Dataset Overview** for summary cards, schema, and missing values.
 6. Open **Analytics Explorer** for statistics, correlations, outliers, and charts.
+7. Open **Data Quality** to run validation checks and review quality score, passed rules, and failed rules.
 
 ## Features
 
@@ -103,3 +105,4 @@ dashboard/
 | Upload fails with MIME error | Use `.csv`, `.xlsx`, or `.json` with correct content type |
 | Missing values chart empty | Run **Profile Dataset** before opening chart tabs |
 | Analytics charts empty | Run **Run Analytics** after uploading a file |
+| Quality page empty | Run **Quality Check** after uploading a file |

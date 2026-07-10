@@ -6,6 +6,7 @@ from dashboard.config import (
     ANALYTICS_ENDPOINT,
     HEALTH_ENDPOINT,
     PROFILE_ENDPOINT,
+    QUALITY_ENDPOINT,
     REQUEST_TIMEOUT,
     UPLOAD_ENDPOINT,
     SUPPORTED_FILE_TYPES,
@@ -61,6 +62,17 @@ def analyze_dataset(stored_filename: str) -> dict[str, Any]:
     with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
         response = client.post(
             ANALYTICS_ENDPOINT,
+            json={"stored_filename": stored_filename},
+        )
+        if response.status_code != 200:
+            raise APIError(_parse_error(response), response.status_code)
+        return response.json()
+
+
+def quality_check(stored_filename: str) -> dict[str, Any]:
+    with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
+        response = client.post(
+            QUALITY_ENDPOINT,
             json={"stored_filename": stored_filename},
         )
         if response.status_code != 200:
