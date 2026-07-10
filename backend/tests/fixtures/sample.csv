@@ -1,0 +1,5 @@
+id,name,amount,category,created_at
+1,Alice,100.5,A,2024-01-01
+2,Bob,200.0,B,2024-01-02
+1,Alice,100.5,A,2024-01-01
+4,,300.0,C,2024-01-03
