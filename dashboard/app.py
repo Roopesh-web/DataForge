@@ -15,6 +15,8 @@ from dashboard.api_client import (
     APIError,
     analyze_dataset,
     check_health,
+    get_warehouse_history,
+    load_to_warehouse,
     profile_dataset,
     quality_check,
     resolve_content_type,
@@ -36,6 +38,7 @@ NAV_OPTIONS = {
     "📋 Dataset Overview": "overview",
     "📈 Analytics Explorer": "analytics",
     "✅ Data Quality": "quality",
+    "🏛️ Warehouse": "warehouse",
 }
 NAV_LABELS = list(NAV_OPTIONS.keys())
 NAV_BY_VALUE = {value: label for label, value in NAV_OPTIONS.items()}
@@ -47,6 +50,7 @@ def init_session_state() -> None:
         "profile_result": None,
         "analytics_result": None,
         "quality_result": None,
+        "warehouse_result": None,
         "stored_filename": None,
         "current_page": "upload",
     }
@@ -142,6 +146,7 @@ def render_upload_page() -> None:
                         st.session_state.profile_result = None
                         st.session_state.analytics_result = None
                         st.session_state.quality_result = None
+                        st.session_state.warehouse_result = None
                         st.success("✅ File uploaded successfully.")
                     except APIError as exc:
                         st.error(f"❌ Upload failed: {exc.message}")
@@ -225,6 +230,21 @@ def _run_quality() -> None:
             st.error(f"❌ Quality check failed: {exc.message}")
         except Exception as exc:
             st.error(f"❌ Quality check failed: {exc}")
+
+
+def _run_warehouse_load() -> None:
+    if not st.session_state.stored_filename:
+        render_info_card("Upload a file before loading to the warehouse.", "warning")
+        return
+
+    with st.spinner("Loading dataset into warehouse..."):
+        try:
+            st.session_state.warehouse_result = load_to_warehouse(st.session_state.stored_filename)
+            st.success("✅ Warehouse load completed successfully.")
+        except APIError as exc:
+            st.error(f"❌ Warehouse load failed: {exc.message}")
+        except Exception as exc:
+            st.error(f"❌ Warehouse load failed: {exc}")
 
 
 def render_overview_page() -> None:
@@ -676,6 +696,57 @@ def render_quality_page() -> None:
             st.json(quality.get("validation_report", {}))
 
 
+def render_warehouse_page() -> None:
+    render_hero(
+        "Enterprise Warehouse",
+        "Load validated datasets into PostgreSQL with transactional batch inserts and audit history.",
+        "🏛️",
+    )
+
+    if not st.session_state.stored_filename:
+        render_info_card("Upload a dataset on the File Upload page to get started.", "info")
+    else:
+        if st.button("🏛️ Load to Warehouse", type="primary", key="btn_run_warehouse_page"):
+            _run_warehouse_load()
+
+        if st.session_state.warehouse_result:
+            result = st.session_state.warehouse_result
+            render_kpi_cards(
+                [
+                    ("✅", "Status", result.get("status", "—").title(), "Latest load status"),
+                    ("📋", "Table Name", result.get("table_name", "—"), "Warehouse table"),
+                    ("📏", "Rows Loaded", str(result.get("rows_loaded", 0)), "Rows inserted"),
+                    ("⏱️", "Duration", f"{result.get('duration_ms', 0)} ms", "Load duration"),
+                ]
+            )
+
+    render_section_title("Load History")
+    try:
+        history = get_warehouse_history()
+        loads = history.get("loads", [])
+        if loads:
+            frame = pd.DataFrame(
+                [
+                    {
+                        "Table Name": item.get("table_name"),
+                        "Rows Loaded": item.get("rows_loaded"),
+                        "Status": item.get("status"),
+                        "Timestamp": item.get("timestamp"),
+                        "Stored Filename": item.get("stored_filename"),
+                        "Duration (ms)": item.get("duration_ms"),
+                    }
+                    for item in loads
+                ]
+            )
+            st.dataframe(frame, use_container_width=True, hide_index=True)
+        else:
+            render_info_card("No warehouse load history available yet.", "info")
+    except APIError as exc:
+        render_info_card(f"Unable to fetch warehouse history: {exc.message}", "error")
+    except Exception as exc:
+        render_info_card(f"Unable to fetch warehouse history: {exc}", "error")
+
+
 def main() -> None:
     st.set_page_config(
         page_title=PAGE_TITLE,
@@ -694,8 +765,10 @@ def main() -> None:
         render_overview_page()
     elif page == "analytics":
         render_analytics_page()
-    else:
+    elif page == "quality":
         render_quality_page()
+    else:
+        render_warehouse_page()
 
 
 if __name__ == "__main__":

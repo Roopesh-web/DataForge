@@ -6,6 +6,8 @@ Production-ready Streamlit dashboard for the DataForge platform. The dashboard c
 - `POST /profile`
 - `POST /analytics`
 - `POST /quality-check`
+- `POST /warehouse/load`
+- `GET /warehouse/history`
 - `GET /health`
 
 ## Prerequisites
@@ -75,6 +77,7 @@ The dashboard opens at **http://localhost:8501**.
 5. Navigate to **Dataset Overview** for summary cards, schema, and missing values.
 6. Open **Analytics Explorer** for statistics, correlations, outliers, and charts.
 7. Open **Data Quality** to run validation checks and review quality score, passed rules, and failed rules.
+8. Open **Warehouse** to load datasets into PostgreSQL and review load history.
 
 ## Features
 

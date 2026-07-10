@@ -9,6 +9,8 @@ from dashboard.config import (
     QUALITY_ENDPOINT,
     REQUEST_TIMEOUT,
     UPLOAD_ENDPOINT,
+    WAREHOUSE_HISTORY_ENDPOINT,
+    WAREHOUSE_LOAD_ENDPOINT,
     SUPPORTED_FILE_TYPES,
 )
 
@@ -75,6 +77,25 @@ def quality_check(stored_filename: str) -> dict[str, Any]:
             QUALITY_ENDPOINT,
             json={"stored_filename": stored_filename},
         )
+        if response.status_code != 200:
+            raise APIError(_parse_error(response), response.status_code)
+        return response.json()
+
+
+def load_to_warehouse(stored_filename: str) -> dict[str, Any]:
+    with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
+        response = client.post(
+            WAREHOUSE_LOAD_ENDPOINT,
+            json={"stored_filename": stored_filename},
+        )
+        if response.status_code != 200:
+            raise APIError(_parse_error(response), response.status_code)
+        return response.json()
+
+
+def get_warehouse_history(limit: int = 50) -> dict[str, Any]:
+    with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
+        response = client.get(WAREHOUSE_HISTORY_ENDPOINT, params={"limit": limit})
         if response.status_code != 200:
             raise APIError(_parse_error(response), response.status_code)
         return response.json()
