@@ -63,6 +63,13 @@ def test_warehouse_history_api(warehouse_upload_dir):
     assert body["loads"][0]["rows_loaded"] == 4
 
 
+def test_warehouse_history_api_empty(warehouse_upload_dir):
+    response = client.get("/warehouse/history")
+
+    assert response.status_code == 200
+    assert response.json() == {"loads": []}
+
+
 def test_warehouse_load_api_file_not_found(warehouse_upload_dir):
     response = client.post(
         "/warehouse/load",

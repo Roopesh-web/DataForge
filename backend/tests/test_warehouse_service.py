@@ -74,6 +74,12 @@ def test_get_load_history(warehouse_service):
     assert history.loads[0].rows_loaded == 4
 
 
+def test_get_load_history_empty(warehouse_service):
+    history = warehouse_service.get_load_history()
+
+    assert history.loads == []
+
+
 def test_load_uploaded_file_not_found(warehouse_service):
     with pytest.raises(Exception) as exc_info:
         warehouse_service.load_uploaded_file("missing.csv")

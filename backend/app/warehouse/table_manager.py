@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import polars as pl
 from sqlalchemy import (
     BigInteger,
@@ -21,7 +23,7 @@ WAREHOUSE_METADATA = MetaData()
 DEFAULT_BATCH_SIZE = 1000
 
 
-def map_polars_type_to_sqlalchemy(dtype: pl.PolarsDataType):
+def map_polars_type_to_sqlalchemy(dtype: pl.DataType):
     while hasattr(dtype, "base_type"):
         base = dtype.base_type()
         if base == dtype:

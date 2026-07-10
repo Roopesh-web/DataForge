@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query, status
+from loguru import logger
 
 from app.schemas.warehouse import (
     WarehouseHistoryResponse,
@@ -52,4 +53,8 @@ async def get_warehouse_history(
     limit: int = Query(default=50, ge=1, le=500),
     warehouse_service: WarehouseService = Depends(get_warehouse_service),
 ) -> WarehouseHistoryResponse:
-    return warehouse_service.get_load_history(limit=limit)
+    try:
+        return warehouse_service.get_load_history(limit=limit)
+    except Exception as exc:
+        logger.warning("Warehouse history request failed, returning empty history: {}", exc)
+        return WarehouseHistoryResponse(loads=[])

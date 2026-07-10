@@ -4,6 +4,7 @@ from pathlib import Path
 import polars as pl
 from sqlalchemy import inspect, select
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
@@ -137,12 +138,17 @@ class WarehouseService:
             ) from exc
 
     def get_load_history(self, limit: int = 50) -> WarehouseHistoryResponse:
-        with self.session_factory() as session:
-            records = session.scalars(
-                select(WarehouseLoadHistory)
-                .order_by(WarehouseLoadHistory.created_at.desc())
-                .limit(limit)
-            ).all()
+        ensure_metadata_tables(self.engine)
+        try:
+            with self.session_factory() as session:
+                records = session.scalars(
+                    select(WarehouseLoadHistory)
+                    .order_by(WarehouseLoadHistory.created_at.desc())
+                    .limit(limit)
+                ).all()
+        except SQLAlchemyError as exc:
+            logger.warning("Failed to fetch warehouse load history: {}", exc)
+            return WarehouseHistoryResponse(loads=[])
 
         loads = [
             WarehouseLoadHistoryItem(

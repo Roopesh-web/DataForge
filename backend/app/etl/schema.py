@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 import polars as pl
@@ -22,7 +24,7 @@ class InferredSchema(BaseModel):
     columns: list[ColumnSchema] = Field(default_factory=list, description="Inferred column schema")
 
 
-POLARS_NUMERIC_TYPES: frozenset[pl.PolarsDataType] = frozenset(
+POLARS_NUMERIC_TYPES: frozenset[pl.DataType] = frozenset(
     {
         pl.Int8,
         pl.Int16,
@@ -38,7 +40,7 @@ POLARS_NUMERIC_TYPES: frozenset[pl.PolarsDataType] = frozenset(
     }
 )
 
-POLARS_DATETIME_TYPES: frozenset[pl.PolarsDataType] = frozenset(
+POLARS_DATETIME_TYPES: frozenset[pl.DataType] = frozenset(
     {
         pl.Date,
         pl.Datetime,
@@ -48,7 +50,7 @@ POLARS_DATETIME_TYPES: frozenset[pl.PolarsDataType] = frozenset(
 )
 
 
-def _resolve_polars_type(dtype: pl.PolarsDataType) -> pl.PolarsDataType:
+def _resolve_polars_type(dtype: pl.DataType) -> pl.DataType:
     if hasattr(dtype, "base_type"):
         base = dtype.base_type()
         if base != dtype:
@@ -56,7 +58,7 @@ def _resolve_polars_type(dtype: pl.PolarsDataType) -> pl.PolarsDataType:
     return dtype
 
 
-def infer_semantic_type(dtype: pl.PolarsDataType) -> SemanticDataType:
+def infer_semantic_type(dtype: pl.DataType) -> SemanticDataType:
     resolved = _resolve_polars_type(dtype)
 
     if resolved in POLARS_NUMERIC_TYPES:

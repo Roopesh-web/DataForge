@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.session import check_database_connection, engine
 from app.utils.error_handlers import RequestIDMiddleware, register_exception_handlers
+from app.warehouse.db_init import ensure_metadata_tables
 
 
 @asynccontextmanager
@@ -25,6 +26,10 @@ async def lifespan(app: FastAPI):
 
     if check_database_connection():
         logger.info("Database connection verified")
+        if ensure_metadata_tables(engine):
+            logger.info("Warehouse metadata tables verified")
+        else:
+            logger.warning("Warehouse metadata tables could not be created at startup")
     else:
         logger.warning("Database connection could not be verified at startup")
 

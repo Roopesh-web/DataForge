@@ -70,23 +70,28 @@ The dashboard opens at **http://localhost:8501**.
 
 ## Usage Workflow
 
-1. Open **File Upload** in the sidebar.
-2. Upload a CSV, Excel (`.xlsx`), or JSON file.
-3. Click **Upload to DataForge**.
-4. Click **Profile Dataset** and/or **Run Analytics**.
-5. Navigate to **Dataset Overview** for summary cards, schema, and missing values.
-6. Open **Analytics Explorer** for statistics, correlations, outliers, and charts.
-7. Open **Data Quality** to run validation checks and review quality score, passed rules, and failed rules.
-8. Open **Warehouse** to load datasets into PostgreSQL and review load history.
+1. Open **Home** for KPI cards, recent upload history, and the dataset timeline.
+2. Go to **Upload** and upload a CSV, Excel (`.xlsx`), or JSON file.
+3. Click **Upload to DataForge**, then use quick actions for Profile, Analytics, or Quality.
+4. Navigate to **Dataset Overview** for summary cards, schema, and missing values.
+5. Open **Analytics** for statistics, correlations, outliers, and charts.
+6. Open **Data Quality** to run validation checks and review quality score, passed rules, and failed rules.
+7. Open **Warehouse** to load datasets into PostgreSQL and review load history.
+8. Open **History** for full upload and activity timelines.
+9. Use **Settings** and **About** for connection info and platform details.
 
 ## Features
 
-- Wide layout with sidebar navigation
-- KPI summary cards
+- Dark enterprise theme with improved typography and card styling
+- Nine-page sidebar navigation: Home, Upload, Dataset Overview, Analytics, Data Quality, Warehouse, History, Settings, About
+- Home page KPI cards: total datasets, rows processed, average quality score, warehouse tables
+- Recent upload history table and dataset activity timeline
+- Responsive Plotly charts with dark theme, improved colors, and spacing
+- Footer: DataForge v1.0 · FastAPI · Streamlit · PostgreSQL
 - Profile and analytics actions with loading spinners
 - Success and error alerts
 - Tabs and expanders for structured exploration
-- Charts: histogram, box plot, correlation heatmap, missing values bar chart, category distribution
+- Charts: histogram, box plot, correlation heatmap, missing values bar chart, category distribution, dataset timeline
 
 ## Project Structure
 
@@ -96,6 +101,8 @@ dashboard/
 ├── api_client.py       # FastAPI HTTP client
 ├── charts.py           # Plotly chart builders
 ├── config.py           # Dashboard configuration
+├── state.py            # Session state and dashboard metrics
+├── ui.py               # UI components, styling, and layout helpers
 ├── requirements.txt    # Dashboard dependencies
 └── README.md           # This file
 ```
