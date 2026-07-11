@@ -1,5 +1,4 @@
-import { useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   FiAlertTriangle,
   FiColumns,
@@ -9,9 +8,11 @@ import {
   FiLayers,
 } from 'react-icons/fi'
 import DataTable from '../components/DataTable'
+import EmptyState from '../components/EmptyState'
 import ErrorAlert from '../components/ErrorAlert'
-import Loader from '../components/Loader'
+import PageSkeleton from '../components/Skeleton'
 import StatCard from '../components/StatCard'
+import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
 
 function formatNumber(value) {
@@ -43,21 +44,31 @@ function Profile() {
     clearError,
     fetchProfile,
   } = useDataset()
+  const toast = useToast()
+  const notifiedRef = useRef(null)
+
+  const requestProfile = useCallback(
+    async ({ notify = false } = {}) => {
+      if (!storedFilename) return
+      clearError()
+      try {
+        await fetchProfile(storedFilename)
+        if (notify || notifiedRef.current !== storedFilename) {
+          toast.success('Dataset profile loaded successfully.')
+          notifiedRef.current = storedFilename
+        }
+      } catch {
+        notifiedRef.current = null
+      }
+    },
+    [storedFilename, clearError, fetchProfile, toast],
+  )
 
   useEffect(() => {
     if (!storedFilename) return undefined
-
-    const load = async () => {
-      try {
-        await fetchProfile(storedFilename)
-      } catch {
-        // Error is stored in DatasetContext.
-      }
-    }
-
-    void load()
+    void requestProfile({ notify: true })
     return undefined
-  }, [storedFilename, fetchProfile])
+  }, [storedFilename, requestProfile])
 
   const profileMatches = profile?.stored_filename === storedFilename
 
@@ -154,18 +165,11 @@ function Profile() {
           </p>
         </header>
 
-        <div className="empty-state">
-          <div className="empty-state__icon" aria-hidden="true">
-            <FiDatabase size={28} />
-          </div>
-          <h3 className="empty-state__title">No dataset selected</h3>
-          <p className="empty-state__text">
-            Upload a CSV, XLSX, or JSON file to generate a profile overview.
-          </p>
-          <Link to="/upload" className="empty-state__action">
-            Go to Upload
-          </Link>
-        </div>
+        <EmptyState
+          icon={FiDatabase}
+          title="No dataset selected"
+          text="Upload a CSV, XLSX, or JSON file to generate a profile overview."
+        />
       </div>
     )
   }
@@ -193,11 +197,14 @@ function Profile() {
           error={error}
           title="Failed to load profile"
           onDismiss={clearError}
+          onRetry={() => requestProfile({ notify: true })}
+          retryLabel="Retry profile"
+          retryDisabled={loading}
         />
       ) : null}
 
       {showLoader ? (
-        <Loader fullPage label="Profiling dataset…" />
+        <PageSkeleton cards={4} label="Profiling dataset…" />
       ) : profileMatches ? (
         <>
           <section className="kpi-grid" aria-label="Dataset summary">
@@ -282,18 +289,14 @@ function Profile() {
           </section>
         </>
       ) : !loading ? (
-        <div className="empty-state">
-          <div className="empty-state__icon" aria-hidden="true">
-            <FiAlertTriangle size={28} />
-          </div>
-          <h3 className="empty-state__title">Profile unavailable</h3>
-          <p className="empty-state__text">
-            Profiling did not return data for this file. Try uploading again.
-          </p>
-          <Link to="/upload" className="empty-state__action">
-            Back to Upload
-          </Link>
-        </div>
+        <EmptyState
+          icon={FiAlertTriangle}
+          title="Profile unavailable"
+          text="Profiling did not return data for this file. Try again or upload a new dataset."
+          actionLabel="Retry profile"
+          onAction={() => requestProfile({ notify: true })}
+          actionDisabled={loading}
+        />
       ) : null}
     </div>
   )

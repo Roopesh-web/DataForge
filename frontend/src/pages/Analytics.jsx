@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FiActivity,
   FiAlertTriangle,
@@ -18,8 +18,9 @@ import ChartCard from '../components/ChartCard'
 import DataTable from '../components/DataTable'
 import EmptyState from '../components/EmptyState'
 import ErrorAlert from '../components/ErrorAlert'
-import Loader from '../components/Loader'
+import PageSkeleton from '../components/Skeleton'
 import StatCard from '../components/StatCard'
+import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
 
 function Analytics() {
@@ -31,24 +32,34 @@ function Analytics() {
     clearError,
     fetchAnalytics,
   } = useDataset()
+  const toast = useToast()
+  const notifiedRef = useRef(null)
 
   const [numericColumn, setNumericColumn] = useState('')
   const [categoryColumn, setCategoryColumn] = useState('')
 
-  useEffect(() => {
-    if (!storedFilename) return undefined
-
-    const load = async () => {
+  const requestAnalytics = useCallback(
+    async ({ notify = false } = {}) => {
+      if (!storedFilename) return
+      clearError()
       try {
         await fetchAnalytics(storedFilename)
+        if (notify || notifiedRef.current !== storedFilename) {
+          toast.success('Analytics completed successfully.')
+          notifiedRef.current = storedFilename
+        }
       } catch {
-        // Error lives in DatasetContext.
+        notifiedRef.current = null
       }
-    }
+    },
+    [storedFilename, clearError, fetchAnalytics, toast],
+  )
 
-    void load()
+  useEffect(() => {
+    if (!storedFilename) return undefined
+    void requestAnalytics({ notify: true })
     return undefined
-  }, [storedFilename, fetchAnalytics])
+  }, [storedFilename, requestAnalytics])
 
   const matches = analytics?.stored_filename === storedFilename
 
@@ -202,11 +213,14 @@ function Analytics() {
           error={error}
           title="Analytics request failed"
           onDismiss={clearError}
+          onRetry={() => requestAnalytics({ notify: true })}
+          retryLabel="Retry analytics"
+          retryDisabled={loading}
         />
       ) : null}
 
       {showLoader ? (
-        <Loader fullPage label="Running analytics…" />
+        <PageSkeleton cards={4} label="Running analytics…" />
       ) : matches ? (
         <>
           <section className="kpi-grid" aria-label="Dataset summary">
@@ -415,6 +429,9 @@ function Analytics() {
           icon={FiAlertTriangle}
           title="Analytics unavailable"
           text="The analytics endpoint did not return data for this file."
+          actionLabel="Retry analytics"
+          onAction={() => requestAnalytics({ notify: true })}
+          actionDisabled={loading}
         />
       ) : null}
     </div>

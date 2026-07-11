@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { FiUploadCloud } from 'react-icons/fi'
 import EmptyState from '../components/EmptyState'
 import ErrorAlert from '../components/ErrorAlert'
-import Loader from '../components/Loader'
-import Toast from '../components/Toast'
+import PageSkeleton from '../components/Skeleton'
+import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
 import {
   datasetDisplayName,
@@ -33,34 +33,29 @@ function Warehouse() {
     loadWarehouse,
     fetchWarehouseHistory,
   } = useDataset()
+  const toast = useToast()
 
-  const [toast, setToast] = useState(null)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const inFlightRef = useRef(false)
 
-  const showToast = useCallback((type, message) => {
-    setToast({ type, message, id: Date.now() })
-  }, [])
+  const refreshHistory = useCallback(async () => {
+    setLoadingHistory(true)
+    clearError()
+    try {
+      await fetchWarehouseHistory(50, { trackLoading: false })
+    } catch {
+      // Error stored in context.
+    } finally {
+      setLoadingHistory(false)
+    }
+  }, [fetchWarehouseHistory, clearError])
 
   useEffect(() => {
-    let cancelled = false
-
-    const load = async () => {
-      setLoadingHistory(true)
-      try {
-        await fetchWarehouseHistory(50, { trackLoading: false })
-      } catch {
-        // Error stored in context.
-      } finally {
-        if (!cancelled) setLoadingHistory(false)
-      }
-    }
-
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [fetchWarehouseHistory])
+    const timer = window.setTimeout(() => {
+      void refreshHistory()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [refreshHistory])
 
   const loads = useMemo(
     () => getHistoryLoads(warehouseHistory),
@@ -82,12 +77,11 @@ function Warehouse() {
 
     try {
       const result = await loadWarehouse(storedFilename)
-      showToast(
-        'success',
+      toast.success(
         `Loaded ${formatNumber(result.rows_loaded)} rows into ${result.table_name}.`,
       )
     } catch (err) {
-      showToast('error', err.message || 'Warehouse load failed.')
+      toast.error(err.message || 'Warehouse load failed.')
     } finally {
       inFlightRef.current = false
     }
@@ -130,6 +124,9 @@ function Warehouse() {
           error={error}
           title="Warehouse request failed"
           onDismiss={clearError}
+          onRetry={handleLoad}
+          retryLabel="Retry warehouse load"
+          retryDisabled={loading || loadingHistory}
         />
       ) : null}
 
@@ -147,17 +144,18 @@ function Warehouse() {
           className="upload-submit-btn"
           onClick={handleLoad}
           disabled={loading}
+          aria-busy={loading}
         >
           {loading ? 'Loading to warehouse…' : 'Load to Warehouse'}
         </button>
-
-        {loading ? <Loader label="Loading dataset into PostgreSQL…" /> : null}
       </section>
+
+      {loading ? <PageSkeleton cards={2} showPanel={false} label="Loading dataset into PostgreSQL…" /> : null}
 
       <section className="warehouse-status-card" aria-live="polite">
         <h3 className="warehouse-status-card__title">Latest load status</h3>
         {loadingHistory && !latestStatus ? (
-          <Loader label="Fetching warehouse history…" />
+          <PageSkeleton cards={0} showPanel label="Fetching warehouse history…" />
         ) : latestStatus ? (
           <dl className="warehouse-status-grid">
             <div>
@@ -203,8 +201,6 @@ function Warehouse() {
       <p className="warehouse-history-link">
         View full load history on the <Link to="/history">History</Link> page.
       </p>
-
-      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   )
 }

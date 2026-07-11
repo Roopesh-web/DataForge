@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiClock } from 'react-icons/fi'
 import ChartCard from '../components/ChartCard'
 import DataTable from '../components/DataTable'
 import EmptyState from '../components/EmptyState'
 import ErrorAlert from '../components/ErrorAlert'
-import Loader from '../components/Loader'
+import PageSkeleton from '../components/Skeleton'
 import { useDataset } from '../hooks/useDataset'
 import {
   formatDurationMs,
@@ -26,30 +26,30 @@ function History() {
     error,
     clearError,
     fetchWarehouseHistory,
+    loading,
   } = useDataset()
 
   const [search, setSearch] = useState('')
   const [loadingHistory, setLoadingHistory] = useState(true)
 
+  const refreshHistory = useCallback(async () => {
+    setLoadingHistory(true)
+    clearError()
+    try {
+      await fetchWarehouseHistory(100, { trackLoading: false })
+    } catch {
+      // Error stored in context.
+    } finally {
+      setLoadingHistory(false)
+    }
+  }, [fetchWarehouseHistory, clearError])
+
   useEffect(() => {
-    let cancelled = false
-
-    const load = async () => {
-      setLoadingHistory(true)
-      try {
-        await fetchWarehouseHistory(100, { trackLoading: false })
-      } catch {
-        // Error stored in context.
-      } finally {
-        if (!cancelled) setLoadingHistory(false)
-      }
-    }
-
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [fetchWarehouseHistory])
+    const timer = window.setTimeout(() => {
+      void refreshHistory()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [refreshHistory])
 
   const loads = useMemo(
     () => getHistoryLoads(warehouseHistory),
@@ -128,11 +128,14 @@ function History() {
           error={error}
           title="Failed to load history"
           onDismiss={clearError}
+          onRetry={refreshHistory}
+          retryLabel="Retry history"
+          retryDisabled={loadingHistory || loading}
         />
       ) : null}
 
       {loadingHistory ? (
-        <Loader fullPage label="Loading warehouse history…" />
+        <PageSkeleton cards={0} label="Loading warehouse history…" />
       ) : !loads.length ? (
         <EmptyState
           icon={FiClock}
@@ -153,6 +156,7 @@ function History() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search filename, dataset, status…"
+                aria-label="Search warehouse history"
               />
             </label>
           }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   FiAlertTriangle,
   FiCheckCircle,
@@ -9,8 +9,9 @@ import ChartCard from '../components/ChartCard'
 import DataTable from '../components/DataTable'
 import EmptyState from '../components/EmptyState'
 import ErrorAlert from '../components/ErrorAlert'
-import Loader from '../components/Loader'
+import PageSkeleton from '../components/Skeleton'
 import StatCard from '../components/StatCard'
+import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
 
 function formatScore(value) {
@@ -76,21 +77,31 @@ function Quality() {
     clearError,
     fetchQuality,
   } = useDataset()
+  const toast = useToast()
+  const notifiedRef = useRef(null)
+
+  const requestQuality = useCallback(
+    async ({ notify = false } = {}) => {
+      if (!storedFilename) return
+      clearError()
+      try {
+        await fetchQuality(storedFilename)
+        if (notify || notifiedRef.current !== storedFilename) {
+          toast.success('Data quality check completed successfully.')
+          notifiedRef.current = storedFilename
+        }
+      } catch {
+        notifiedRef.current = null
+      }
+    },
+    [storedFilename, clearError, fetchQuality, toast],
+  )
 
   useEffect(() => {
     if (!storedFilename) return undefined
-
-    const load = async () => {
-      try {
-        await fetchQuality(storedFilename)
-      } catch {
-        // Error lives in DatasetContext.
-      }
-    }
-
-    void load()
+    void requestQuality({ notify: true })
     return undefined
-  }, [storedFilename, fetchQuality])
+  }, [storedFilename, requestQuality])
 
   const matches = quality?.stored_filename === storedFilename
   const summary = matches ? quality.validation_summary : null
@@ -176,11 +187,14 @@ function Quality() {
           error={error}
           title="Quality check failed"
           onDismiss={clearError}
+          onRetry={() => requestQuality({ notify: true })}
+          retryLabel="Retry quality check"
+          retryDisabled={loading}
         />
       ) : null}
 
       {showLoader ? (
-        <Loader fullPage label="Running quality checks…" />
+        <PageSkeleton cards={4} label="Running quality checks…" />
       ) : matches ? (
         <>
           <section className="kpi-grid" aria-label="Quality summary">
@@ -312,6 +326,9 @@ function Quality() {
           icon={FiAlertTriangle}
           title="Quality results unavailable"
           text="The quality-check endpoint did not return data for this file."
+          actionLabel="Retry quality check"
+          onAction={() => requestQuality({ notify: true })}
+          actionDisabled={loading}
         />
       ) : null}
     </div>

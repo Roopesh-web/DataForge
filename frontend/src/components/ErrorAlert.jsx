@@ -1,10 +1,17 @@
-import { FiAlertCircle, FiX } from 'react-icons/fi'
+import { FiAlertCircle, FiRefreshCw, FiX } from 'react-icons/fi'
 
 /**
  * Displays normalized backend errors:
  * { error, message, details?, requestId?, status? }
  */
-function ErrorAlert({ error, onDismiss, title = 'Something went wrong' }) {
+function ErrorAlert({
+  error,
+  onDismiss,
+  onRetry,
+  retryLabel = 'Retry',
+  retryDisabled = false,
+  title = 'Something went wrong',
+}) {
   if (!error) return null
 
   const message =
@@ -14,6 +21,8 @@ function ErrorAlert({ error, onDismiss, title = 'Something went wrong' }) {
   const details = typeof error === 'object' && Array.isArray(error.details)
     ? error.details
     : null
+  const isTimeout = code === 'TIMEOUT_ERROR'
+  const isNetwork = code === 'NETWORK_ERROR'
 
   return (
     <div className="error-alert" role="alert">
@@ -38,6 +47,14 @@ function ErrorAlert({ error, onDismiss, title = 'Something went wrong' }) {
 
         <p className="error-alert__message">{message}</p>
 
+        {isTimeout || isNetwork ? (
+          <p className="error-alert__meta">
+            {isTimeout
+              ? 'The request timed out. Check the API and try again.'
+              : 'A network problem prevented the request from completing.'}
+          </p>
+        ) : null}
+
         {code || requestId ? (
           <p className="error-alert__meta">
             {code ? <span>{code}</span> : null}
@@ -56,6 +73,20 @@ function ErrorAlert({ error, onDismiss, title = 'Something went wrong' }) {
               </li>
             ))}
           </ul>
+        ) : null}
+
+        {onRetry ? (
+          <div className="error-alert__actions">
+            <button
+              type="button"
+              className="error-alert__retry"
+              onClick={onRetry}
+              disabled={retryDisabled}
+            >
+              <FiRefreshCw size={14} aria-hidden="true" />
+              {retryLabel}
+            </button>
+          </div>
         ) : null}
       </div>
     </div>

@@ -1,11 +1,13 @@
 import { useCallback, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiFile, FiUploadCloud, FiX } from 'react-icons/fi'
-import Toast from '../components/Toast'
+import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
 
 const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx', '.json']
-const ACCEPT_ATTR = '.csv,.xlsx,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const ACCEPT_ATTR =
+  '.csv,.xlsx,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 
 function formatFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes < 0) return '—'
@@ -20,27 +22,34 @@ function getExtension(filename = '') {
   return `.${parts.at(-1)}`
 }
 
-function isAcceptedFile(file) {
-  if (!file?.name) return false
-  return ACCEPTED_EXTENSIONS.includes(getExtension(file.name))
+function validateFile(file) {
+  if (!file) return 'Choose a file to upload.'
+  if (!file.name?.trim()) return 'The selected file is missing a name.'
+  if (!ACCEPTED_EXTENSIONS.includes(getExtension(file.name))) {
+    return 'Only CSV, XLSX, and JSON files are supported.'
+  }
+  if (!file.size) return 'The selected file is empty.'
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return `File exceeds the ${formatFileSize(MAX_UPLOAD_BYTES)} upload limit.`
+  }
+  return null
 }
 
 function Upload() {
   const inputId = useId()
   const inputRef = useRef(null)
+  const inFlightRef = useRef(false)
   const navigate = useNavigate()
-  const { uploadDataset, clearError } = useDataset()
+  const toast = useToast()
+  const { uploadDataset, clearError, loading } = useDataset()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [validationError, setValidationError] = useState(null)
-  const [toast, setToast] = useState(null)
 
-  const showToast = useCallback((type, message) => {
-    setToast({ type, message, id: Date.now() })
-  }, [])
+  const busy = uploading || loading
 
   const clearSelection = useCallback(() => {
     setSelectedFile(null)
@@ -49,35 +58,38 @@ function Upload() {
     if (inputRef.current) inputRef.current.value = ''
   }, [])
 
-  const selectFile = useCallback((file) => {
-    if (!file) return
-    if (!isAcceptedFile(file)) {
-      setSelectedFile(null)
-      setValidationError('Only CSV, XLSX, and JSON files are supported.')
-      showToast('error', 'Only CSV, XLSX, and JSON files are supported.')
-      return
-    }
-    setValidationError(null)
-    setSelectedFile(file)
-    setProgress(0)
-  }, [showToast])
+  const selectFile = useCallback(
+    (file) => {
+      if (!file) return
+      const problem = validateFile(file)
+      if (problem) {
+        setSelectedFile(null)
+        setValidationError(problem)
+        toast.error(problem)
+        if (inputRef.current) inputRef.current.value = ''
+        return
+      }
+      setValidationError(null)
+      setSelectedFile(file)
+      setProgress(0)
+    },
+    [toast],
+  )
 
   const onInputChange = (event) => {
-    const file = event.target.files?.[0]
-    selectFile(file)
+    selectFile(event.target.files?.[0])
   }
 
   const onDrop = (event) => {
     event.preventDefault()
     setIsDragging(false)
-    if (uploading) return
-    const file = event.dataTransfer.files?.[0]
-    selectFile(file)
+    if (busy) return
+    selectFile(event.dataTransfer.files?.[0])
   }
 
   const onDragOver = (event) => {
     event.preventDefault()
-    if (!uploading) setIsDragging(true)
+    if (!busy) setIsDragging(true)
   }
 
   const onDragLeave = (event) => {
@@ -85,9 +97,25 @@ function Upload() {
     setIsDragging(false)
   }
 
-  const handleUpload = async () => {
-    if (!selectedFile || uploading) return
+  const onDropzoneKeyDown = (event) => {
+    if (busy) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      inputRef.current?.click()
+    }
+  }
 
+  const handleUpload = async () => {
+    if (!selectedFile || busy || inFlightRef.current) return
+
+    const problem = validateFile(selectedFile)
+    if (problem) {
+      setValidationError(problem)
+      toast.error(problem)
+      return
+    }
+
+    inFlightRef.current = true
     setUploading(true)
     setProgress(0)
     setValidationError(null)
@@ -106,8 +134,7 @@ function Upload() {
       })
 
       setProgress(100)
-      showToast(
-        'success',
+      toast.success(
         `Uploaded ${result.original_filename || selectedFile.name} successfully.`,
       )
 
@@ -116,9 +143,10 @@ function Upload() {
       }, 700)
     } catch (err) {
       setProgress(0)
-      showToast('error', err.message || 'Upload failed. Please try again.')
+      toast.error(err.message || 'Upload failed. Please try again.')
     } finally {
       setUploading(false)
+      inFlightRef.current = false
     }
   }
 
@@ -134,18 +162,22 @@ function Upload() {
 
       <section
         className={`upload-dropzone${isDragging ? ' upload-dropzone--active' : ''}${
-          uploading ? ' upload-dropzone--disabled' : ''
+          busy ? ' upload-dropzone--disabled' : ''
         }`}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        aria-label="File upload dropzone"
+        onKeyDown={onDropzoneKeyDown}
+        tabIndex={busy ? -1 : 0}
+        role="button"
+        aria-label="File upload dropzone. Press Enter to browse files."
+        aria-disabled={busy}
       >
         <div className="upload-dropzone__icon" aria-hidden="true">
           <FiUploadCloud size={36} />
         </div>
         <p className="upload-dropzone__title">Drag & drop your file here</p>
-        <p className="upload-dropzone__hint">CSV · XLSX · JSON</p>
+        <p className="upload-dropzone__hint">CSV · XLSX · JSON · max 100 MB</p>
 
         <input
           ref={inputRef}
@@ -153,11 +185,15 @@ function Upload() {
           type="file"
           className="upload-dropzone__input"
           accept={ACCEPT_ATTR}
-          disabled={uploading}
+          disabled={busy}
           onChange={onInputChange}
         />
 
-        <label htmlFor={inputId} className="upload-browse-btn">
+        <label
+          htmlFor={inputId}
+          className={`upload-browse-btn${busy ? ' is-disabled' : ''}`}
+          aria-disabled={busy}
+        >
           Browse Files
         </label>
       </section>
@@ -175,7 +211,7 @@ function Upload() {
             type="button"
             className="upload-file-card__clear"
             onClick={clearSelection}
-            disabled={uploading}
+            disabled={busy}
             aria-label="Remove selected file"
           >
             <FiX size={16} aria-hidden="true" />
@@ -189,10 +225,10 @@ function Upload() {
         </p>
       ) : null}
 
-      {(uploading || progress > 0) && selectedFile ? (
+      {(busy || progress > 0) && selectedFile ? (
         <section className="upload-progress" aria-label="Upload progress">
           <div className="upload-progress__header">
-            <span>{uploading ? 'Uploading…' : 'Upload complete'}</span>
+            <span>{busy ? 'Uploading…' : 'Upload complete'}</span>
             <span>{progress}%</span>
           </div>
           <div
@@ -202,10 +238,7 @@ function Upload() {
             aria-valuemax={100}
             aria-valuenow={progress}
           >
-            <div
-              className="upload-progress__bar"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="upload-progress__bar" style={{ width: `${progress}%` }} />
           </div>
         </section>
       ) : null}
@@ -215,13 +248,12 @@ function Upload() {
           type="button"
           className="upload-submit-btn"
           onClick={handleUpload}
-          disabled={!selectedFile || uploading}
+          disabled={!selectedFile || busy}
+          aria-busy={busy}
         >
-          {uploading ? 'Uploading…' : 'Upload to DataForge'}
+          {busy ? 'Uploading…' : 'Upload to DataForge'}
         </button>
       </div>
-
-      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   )
 }

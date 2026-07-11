@@ -72,9 +72,40 @@ export function parseApiError(error) {
   }
 
   if (error.request) {
+    const isTimeout =
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ETIMEDOUT' ||
+      /timeout/i.test(error.message || '')
+
+    if (isTimeout) {
+      return {
+        message:
+          'The request timed out. The API may be busy or the dataset is large — please retry.',
+        error: 'TIMEOUT_ERROR',
+        details: null,
+        requestId: null,
+        status: null,
+      }
+    }
+
     return {
       message: 'Unable to reach the DataForge API. Check that the backend is running.',
       error: 'NETWORK_ERROR',
+      details: null,
+      requestId: null,
+      status: null,
+    }
+  }
+
+  if (
+    error.code === 'ECONNABORTED' ||
+    error.code === 'ETIMEDOUT' ||
+    /timeout/i.test(error.message || '')
+  ) {
+    return {
+      message:
+        'The request timed out. The API may be busy or the dataset is large — please retry.',
+      error: 'TIMEOUT_ERROR',
       details: null,
       requestId: null,
       status: null,

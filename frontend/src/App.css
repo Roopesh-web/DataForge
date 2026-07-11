@@ -1573,6 +1573,163 @@
   }
 }
 
+/* Phase 7 hardening */
+
+.page {
+  gap: 1.25rem;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -40px;
+  z-index: 100;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  background: var(--df-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+.app-content:focus {
+  outline: none;
+}
+
+.app-content:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+}
+
+.sidebar__link:focus-visible {
+  outline-offset: 0;
+}
+
+.upload-browse-btn.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: min(380px, calc(100vw - 2rem));
+}
+
+.toast-stack .toast {
+  position: static;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+}
+
+.page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeleton {
+  border-radius: var(--df-radius-sm);
+  background: linear-gradient(
+    90deg,
+    rgba(51, 65, 85, 0.35) 0%,
+    rgba(100, 116, 139, 0.45) 50%,
+    rgba(51, 65, 85, 0.35) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton--title {
+  height: 1.6rem;
+  width: min(280px, 55%);
+}
+
+.skeleton--text {
+  height: 0.9rem;
+  width: min(420px, 75%);
+}
+
+.skeleton--card {
+  min-height: 118px;
+}
+
+.skeleton--panel {
+  min-height: 180px;
+}
+
+.skeleton--panel-short {
+  min-height: 120px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.error-alert__actions {
+  margin-top: 0.75rem;
+}
+
+.error-alert__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(252, 165, 165, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error-alert__retry:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.error-alert__retry:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:disabled,
+.upload-submit-btn:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .toast-stack {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    max-width: none;
+  }
+}
+
+
 
 
 

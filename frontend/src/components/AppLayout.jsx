@@ -63,6 +63,9 @@ function AppLayout() {
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Sidebar open={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
 
       <button
@@ -78,7 +81,7 @@ function AppLayout() {
           subtitle={meta.subtitle}
           onMenuClick={() => setSidebarOpen((open) => !open)}
         />
-        <main className="app-content">
+        <main id="main-content" className="app-content" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
