@@ -16,6 +16,7 @@ const initialState = {
   analytics: null,
   quality: null,
   warehouseHistory: null,
+  lastWarehouseLoad: null,
   loading: false,
   error: null,
 }
@@ -28,6 +29,9 @@ export function DatasetProvider({ children }) {
   const [quality, setQuality] = useState(initialState.quality)
   const [warehouseHistory, setWarehouseHistory] = useState(
     initialState.warehouseHistory,
+  )
+  const [lastWarehouseLoad, setLastWarehouseLoad] = useState(
+    initialState.lastWarehouseLoad,
   )
   const [loading, setLoading] = useState(initialState.loading)
   const [error, setError] = useState(initialState.error)
@@ -43,6 +47,7 @@ export function DatasetProvider({ children }) {
     setAnalytics(initialState.analytics)
     setQuality(initialState.quality)
     setWarehouseHistory(initialState.warehouseHistory)
+    setLastWarehouseLoad(initialState.lastWarehouseLoad)
     setLoading(initialState.loading)
     setError(initialState.error)
   }, [])
@@ -130,6 +135,9 @@ export function DatasetProvider({ children }) {
       }
       return runAction(async () => {
         const result = await loadToWarehouse(filename)
+        setLastWarehouseLoad(result)
+        const history = await getWarehouseHistory(50)
+        setWarehouseHistory(history)
         return result
       })
     },
@@ -137,12 +145,31 @@ export function DatasetProvider({ children }) {
   )
 
   const fetchWarehouseHistory = useCallback(
-    async (limit = 50) => {
-      return runAction(async () => {
+    async (limit = 50, options = {}) => {
+      const trackLoading = options.trackLoading !== false
+
+      const action = async () => {
         const result = await getWarehouseHistory(limit)
         setWarehouseHistory(result)
         return result
-      })
+      }
+
+      if (!trackLoading) {
+        try {
+          return await action()
+        } catch (err) {
+          setError({
+            message: err.message || 'An unexpected error occurred',
+            error: err.error || 'UNKNOWN_ERROR',
+            details: err.details || null,
+            requestId: err.requestId || null,
+            status: err.status ?? null,
+          })
+          throw err
+        }
+      }
+
+      return runAction(action)
     },
     [runAction],
   )
@@ -155,6 +182,7 @@ export function DatasetProvider({ children }) {
       analytics,
       quality,
       warehouseHistory,
+      lastWarehouseLoad,
       loading,
       error,
       setStoredFilename,
@@ -163,6 +191,7 @@ export function DatasetProvider({ children }) {
       setAnalytics,
       setQuality,
       setWarehouseHistory,
+      setLastWarehouseLoad,
       setLoading,
       setError,
       clearError,
@@ -181,6 +210,7 @@ export function DatasetProvider({ children }) {
       analytics,
       quality,
       warehouseHistory,
+      lastWarehouseLoad,
       loading,
       error,
       clearError,

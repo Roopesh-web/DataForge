@@ -18,6 +18,11 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from app.warehouse.exceptions import WarehouseTableError, sanitize_identifier
+from app.db.schema_setup import (
+    APPLICATION_SCHEMA,
+    ensure_application_schema,
+    uses_application_schema,
+)
 
 WAREHOUSE_METADATA = MetaData()
 DEFAULT_BATCH_SIZE = 1000
@@ -45,7 +50,18 @@ def map_polars_type_to_sqlalchemy(dtype: pl.DataType):
     return Text
 
 
-def build_warehouse_table(table_name: str, dataframe: pl.DataFrame) -> Table:
+def _warehouse_schema(engine: Engine) -> str | None:
+    if not uses_application_schema(engine):
+        return None
+    ensure_application_schema(engine)
+    return APPLICATION_SCHEMA
+
+
+def build_warehouse_table(
+    table_name: str,
+    dataframe: pl.DataFrame,
+    schema: str | None = None,
+) -> Table:
     columns = [
         Column("wh_row_id", Integer, primary_key=True, autoincrement=True),
     ]
@@ -60,21 +76,30 @@ def build_warehouse_table(table_name: str, dataframe: pl.DataFrame) -> Table:
             )
         )
 
-    return Table(table_name, WAREHOUSE_METADATA, *columns)
+    return Table(table_name, WAREHOUSE_METADATA, *columns, schema=schema)
 
 
 def ensure_warehouse_table(engine: Engine, table_name: str, dataframe: pl.DataFrame) -> Table:
+    schema = _warehouse_schema(engine)
     inspector = inspect(engine)
 
-    if inspector.has_table(table_name):
+    if inspector.has_table(table_name, schema=schema) or (
+        schema is not None and inspector.has_table(table_name)
+    ):
+        key = f"{schema}.{table_name}" if schema else table_name
+        if key in WAREHOUSE_METADATA.tables:
+            return WAREHOUSE_METADATA.tables[key]
         if table_name in WAREHOUSE_METADATA.tables:
             return WAREHOUSE_METADATA.tables[table_name]
-        return Table(table_name, WAREHOUSE_METADATA, autoload_with=engine)
+        return Table(table_name, WAREHOUSE_METADATA, schema=schema, autoload_with=engine)
 
-    if table_name in WAREHOUSE_METADATA.tables:
+    key = f"{schema}.{table_name}" if schema else table_name
+    if key in WAREHOUSE_METADATA.tables:
+        WAREHOUSE_METADATA.remove(WAREHOUSE_METADATA.tables[key])
+    elif table_name in WAREHOUSE_METADATA.tables:
         WAREHOUSE_METADATA.remove(WAREHOUSE_METADATA.tables[table_name])
 
-    table = build_warehouse_table(table_name, dataframe)
+    table = build_warehouse_table(table_name, dataframe, schema=schema)
     try:
         table.create(bind=engine, checkfirst=True)
     except Exception as exc:

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.db.schema_setup import configure_search_path, uses_application_schema
 
 logger = get_logger("db.session")
 
@@ -29,6 +30,8 @@ SessionLocal = sessionmaker(
 @event.listens_for(engine, "connect")
 def receive_connect(dbapi_connection, connection_record) -> None:
     logger.debug("Database connection established")
+    if uses_application_schema(engine):
+        configure_search_path(dbapi_connection)
 
 
 def get_db() -> Generator[Session, None, None]:
