@@ -1,4 +1,5 @@
 import { FiMenu } from 'react-icons/fi'
+import ApiHealthBadge from './ApiHealthBadge'
 
 function Navbar({ title, subtitle, onMenuClick }) {
   return (
@@ -19,10 +20,7 @@ function Navbar({ title, subtitle, onMenuClick }) {
       </div>
 
       <div className="navbar__right">
-        <span className="navbar__badge" title="API status will be wired in a later phase">
-          <span className="navbar__badge-dot" aria-hidden="true" />
-          API idle
-        </span>
+        <ApiHealthBadge />
       </div>
     </header>
   )

@@ -8,4 +8,34 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  server: {
+    proxy: {
+      // Same-origin proxy avoids browser CORS blocks while developing on :5173.
+      // Backend still receives the request; the browser never cross-origin fetches.
+      '/health': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/upload': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/profile': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/analytics': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/quality-check': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/warehouse': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

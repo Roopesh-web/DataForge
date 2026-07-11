@@ -47,7 +47,10 @@ function AppLayout() {
   }
 
   useEffect(() => {
-    setSidebarOpen(false)
+    const timer = window.setTimeout(() => {
+      setSidebarOpen(false)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [location.pathname])
 
   useEffect(() => {
