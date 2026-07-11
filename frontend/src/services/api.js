@@ -139,12 +139,13 @@ export async function checkHealth() {
   return data
 }
 
-export async function uploadFile(file) {
+export async function uploadFile(file, { onUploadProgress } = {}) {
   const formData = new FormData()
   formData.append('file', file)
 
+  // Let the browser set multipart Content-Type with boundary.
   const response = await apiClient.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress,
   })
   return response.data
 }

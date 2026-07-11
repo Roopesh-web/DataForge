@@ -67,9 +67,9 @@ export function DatasetProvider({ children }) {
   }, [])
 
   const uploadDataset = useCallback(
-    async (file) => {
+    async (file, options = {}) => {
       return runAction(async () => {
-        const result = await uploadFile(file)
+        const result = await uploadFile(file, options)
         setDataset(result)
         setStoredFilename(result.stored_filename)
         setProfile(null)
