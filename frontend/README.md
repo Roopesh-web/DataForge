@@ -1,18 +1,80 @@
-# React + Vite
+# DataForge Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite SPA for the DataForge enterprise data platform.
 
-Currently, two official plugins are available:
+**Stack:** React 19 · Vite 8 · React Router · Axios · Recharts · React Icons
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Prerequisites
 
-## React Compiler
+- Node.js 20+
+- DataForge FastAPI backend running (default `http://localhost:8000`)
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Setup
 
-Note: This will impact Vite dev & build performances.
+```bash
+cd frontend
+npm install
+```
 
-## Expanding the ESLint configuration
+Optional environment (see `.env.example`):
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+# Leave unset in local Vite dev to use the same-origin proxy (avoids CORS).
+# VITE_API_URL=http://localhost:8000
+```
+
+## Development
+
+```bash
+npm run dev
+```
+
+App: `http://localhost:5173`
+
+Vite proxies these backend paths to `http://localhost:8000`:
+
+- `/health`
+- `/openapi.json`
+- `/upload`
+- `/profile`
+- `/analytics`
+- `/quality-check`
+- `/warehouse`
+
+## Production build
+
+```bash
+npm run build
+npm run preview
+```
+
+Output is written to `frontend/dist`.
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run lint` | ESLint |
+
+## Routes
+
+| Path | Page |
+|------|------|
+| `/` | Dashboard |
+| `/upload` | Upload |
+| `/overview` | Dataset Overview |
+| `/analytics` | Analytics |
+| `/quality` | Data Quality |
+| `/warehouse` | Warehouse |
+| `/history` | History |
+| `/settings` | Settings (read-only) |
+
+## Notes
+
+- Pages are lazy-loaded for smaller initial bundles.
+- API health is polled once via a shared `HealthProvider` (navbar + settings).
+- Dataset state lives in `DatasetContext` (upload, profile, analytics, quality, warehouse).
+- Do not point the browser at the FastAPI origin from Vite without CORS; prefer the proxy in development.

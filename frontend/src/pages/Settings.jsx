@@ -10,7 +10,7 @@ import {
   FiMonitor,
   FiServer,
 } from 'react-icons/fi'
-import { useHealthCheck } from '../hooks/useHealthCheck'
+import { useHealth } from '../hooks/useHealth'
 import { API_BASE_URL, fetchOpenApiInfo } from '../services/api'
 import {
   APP_NAME,
@@ -67,7 +67,7 @@ function SettingsCard({ icon: Icon, title, children, footer = null }) {
 }
 
 function Settings() {
-  const { status, lastCheckedAt, error, refresh, isChecking } = useHealthCheck()
+  const { status, lastCheckedAt, error, refresh, isChecking } = useHealth()
   const [backendInfo, setBackendInfo] = useState({
     title: null,
     version: null,
@@ -100,7 +100,21 @@ function Settings() {
     return () => {
       cancelled = true
     }
-  }, [status])
+  }, [])
+
+  const handleRefresh = async () => {
+    await refresh()
+    try {
+      const info = await fetchOpenApiInfo()
+      setBackendInfo({
+        title: info.title,
+        version: info.version,
+        loading: false,
+      })
+    } catch {
+      setBackendInfo((prev) => ({ ...prev, loading: false }))
+    }
+  }
 
   const apiStatusLabel =
     status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Checking…'
@@ -148,7 +162,7 @@ function Settings() {
               <button
                 type="button"
                 className="settings-refresh-btn"
-                onClick={refresh}
+                onClick={handleRefresh}
                 disabled={isChecking}
               >
                 {isChecking ? 'Checking…' : 'Refresh status'}

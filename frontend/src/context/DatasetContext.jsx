@@ -61,6 +61,8 @@ export function DatasetProvider({ children }) {
 
   /** @type {React.MutableRefObject<Map<string, { promise: Promise<unknown>, controller: AbortController }>>} */
   const inFlightRef = useRef(new Map())
+  /** Dedupes silent (trackLoading: false) warehouse history fetches by limit. */
+  const silentHistoryRef = useRef(new Map())
 
   const syncLoadingState = useCallback(() => {
     const entries = [...inFlightRef.current.keys()]
@@ -331,17 +333,32 @@ export function DatasetProvider({ children }) {
       }
 
       if (!trackLoading) {
-        try {
-          return await action(signal)
-        } catch (err) {
-          if (isCancelError(err) || signal?.aborted) {
-            throw Object.assign(new Error('Request cancelled'), {
-              error: 'REQUEST_CANCELLED',
-            })
-          }
-          setError(toContextError(err))
-          throw err
+        const dedupeKey = String(limit)
+        const existing = silentHistoryRef.current.get(dedupeKey)
+        if (existing) {
+          return existing
         }
+
+        const promise = (async () => {
+          try {
+            return await action(signal)
+          } catch (err) {
+            if (isCancelError(err) || signal?.aborted) {
+              throw Object.assign(new Error('Request cancelled'), {
+                error: 'REQUEST_CANCELLED',
+              })
+            }
+            setError(toContextError(err))
+            throw err
+          } finally {
+            if (silentHistoryRef.current.get(dedupeKey) === promise) {
+              silentHistoryRef.current.delete(dedupeKey)
+            }
+          }
+        })()
+
+        silentHistoryRef.current.set(dedupeKey, promise)
+        return promise
       }
 
       return runAction('history', action, {

@@ -24,7 +24,11 @@ const NAV_ITEMS = [
 
 function Sidebar({ open = false, onNavigate }) {
   return (
-    <aside className={`sidebar${open ? ' sidebar--open' : ''}`} aria-label="Main navigation">
+    <aside
+      id="app-sidebar"
+      className={`sidebar${open ? ' sidebar--open' : ''}`}
+      aria-label="Main navigation"
+    >
       <div className="sidebar__brand">
         <div className="sidebar__logo" aria-hidden="true">
           <span className="sidebar__logo-mark">DF</span>

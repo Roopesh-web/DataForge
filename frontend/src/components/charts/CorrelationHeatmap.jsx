@@ -12,7 +12,7 @@ function CorrelationHeatmap({ columns = [], values = [] }) {
           <tr>
             <th aria-hidden="true" />
             {columns.map((column) => (
-              <th key={column} title={column}>
+              <th key={column} title={column} scope="col">
                 {column}
               </th>
             ))}

@@ -1,6 +1,9 @@
 function ChartCard({ title, subtitle, children, empty, actions = null, className = '' }) {
   return (
-    <section className={`chart-card${className ? ` ${className}` : ''}`}>
+    <section
+      className={`chart-card${className ? ` ${className}` : ''}`}
+      aria-label={typeof title === 'string' ? title : undefined}
+    >
       <header className="chart-card__header">
         <div className="chart-card__titles">
           {title ? <h3 className="chart-card__title">{title}</h3> : null}

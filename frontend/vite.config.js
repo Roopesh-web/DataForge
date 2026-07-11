@@ -8,6 +8,10 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  build: {
+    // Analytics/Recharts chunks can exceed the default advisory threshold.
+    chunkSizeWarningLimit: 900,
+  },
   server: {
     proxy: {
       // Same-origin proxy avoids browser CORS blocks while developing on :5173.

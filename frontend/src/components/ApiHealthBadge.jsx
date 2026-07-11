@@ -1,7 +1,7 @@
-import { useHealthCheck } from '../hooks/useHealthCheck'
+import { useHealth } from '../hooks/useHealth'
 
 function ApiHealthBadge() {
-  const { status, error, refresh } = useHealthCheck()
+  const { status, error, refresh } = useHealth()
 
   const label =
     status === 'online'
@@ -23,10 +23,10 @@ function ApiHealthBadge() {
       className={className}
       onClick={refresh}
       title={error || 'Click to refresh API status'}
-      aria-live="polite"
+      aria-label={`${label}. Click to refresh.`}
     >
       <span className="navbar__badge-dot" aria-hidden="true" />
-      {label}
+      <span aria-live="polite">{label}</span>
     </button>
   )
 }

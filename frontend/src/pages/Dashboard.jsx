@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FiBarChart2,
@@ -12,6 +12,7 @@ import {
   FiUploadCloud,
 } from 'react-icons/fi'
 import ChartCard from '../components/ChartCard'
+import EmptyState from '../components/EmptyState'
 import StatCard from '../components/StatCard'
 import { useDataset } from '../hooks/useDataset'
 import {
@@ -40,16 +41,32 @@ function Dashboard() {
     lastWarehouseLoad,
     fetchWarehouseHistory,
   } = useDataset()
+  const [historyReady, setHistoryReady] = useState(Boolean(warehouseHistory))
 
   useEffect(() => {
+    const controller = new AbortController()
+    let cancelled = false
+
     const load = async () => {
       try {
-        await fetchWarehouseHistory(50, { trackLoading: false })
+        await fetchWarehouseHistory(50, {
+          trackLoading: false,
+          signal: controller.signal,
+        })
       } catch {
         // History may be empty or API offline; dashboard still shows local context.
+      } finally {
+        if (!cancelled && !controller.signal.aborted) {
+          setHistoryReady(true)
+        }
       }
     }
+
     void load()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [fetchWarehouseHistory, storedFilename, lastWarehouseLoad])
 
   const loads = useMemo(
@@ -98,81 +115,71 @@ function Dashboard() {
           new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime(),
       )
       .slice(0, 8)
-  }, [dataset, loads, storedFilename])
+  }, [dataset, storedFilename, loads])
 
   return (
     <div className="page dashboard-page">
       <header className="page__header">
         <span className="page__eyebrow">Overview</span>
-        <h2 className="page__heading">Welcome to DataForge</h2>
+        <h2 className="page__heading">Dashboard</h2>
         <p className="page__description">
-          Live workspace metrics from your active dataset, quality results, and
-          warehouse activity.
+          Live status for the active dataset, quality score, and recent warehouse
+          activity.
         </p>
       </header>
 
-      <section className="kpi-grid" aria-label="Key performance indicators">
+      {!storedFilename ? (
+        <EmptyState
+          icon={FiUploadCloud}
+          title="No dataset loaded"
+          text="Upload a CSV, XLSX, or JSON file to populate dashboard metrics."
+          actionLabel="Go to Upload"
+          actionTo="/upload"
+        />
+      ) : null}
+
+      <section className="kpi-grid" aria-label="Key metrics">
         <StatCard
-          label="Current Dataset"
+          label="Active dataset"
           value={storedFilename ? currentName : '—'}
-          hint={storedFilename || 'Upload a file to begin'}
+          hint={storedFilename ? 'Currently selected file' : 'Upload to begin'}
           icon={FiFileText}
-          tone="primary"
           compact
         />
         <StatCard
-          label="Number of Rows"
-          value={rows != null ? formatNumber(rows) : '—'}
-          hint={rows != null ? 'From latest profile' : 'Run Dataset Overview'}
-          icon={FiLayers}
-          tone="accent"
+          label="Rows"
+          value={formatNumber(rows)}
+          hint={profileMatches ? 'From latest profile' : 'Run Dataset Overview'}
+          icon={FiDatabase}
         />
         <StatCard
-          label="Number of Columns"
-          value={columns != null ? formatNumber(columns) : '—'}
-          hint={columns != null ? 'From latest profile' : 'Run Dataset Overview'}
+          label="Columns"
+          value={formatNumber(columns)}
+          hint={profileMatches ? 'From latest profile' : 'Run Dataset Overview'}
           icon={FiColumns}
+        />
+        <StatCard
+          label="Quality score"
+          value={
+            qualityScore == null || Number.isNaN(Number(qualityScore))
+              ? '—'
+              : Number(qualityScore).toFixed(1)
+          }
+          hint={qualityMatches ? 'From latest quality check' : 'Run Data Quality'}
+          icon={FiCheckCircle}
           tone="success"
         />
-        <StatCard
-          label="Quality Score"
-          value={
-            qualityScore != null ? Number(qualityScore).toFixed(1) : '—'
-          }
-          hint={
-            qualityScore != null ? 'From latest quality check' : 'Run Data Quality'
-          }
-          icon={FiCheckCircle}
-          tone="warning"
-        />
       </section>
 
-      <section className="kpi-grid kpi-grid--two" aria-label="Warehouse metrics">
-        <StatCard
-          label="Warehouse Loads"
-          value={formatNumber(loads.length)}
-          hint={
-            lastWarehouseLoad
-              ? `Latest: ${lastWarehouseLoad.status} · ${formatNumber(lastWarehouseLoad.rows_loaded)} rows`
-              : 'Loads recorded in history'
+      <section className="dashboard-split" aria-label="Activity and shortcuts">
+        <ChartCard
+          title="Recent activity"
+          subtitle={
+            historyReady
+              ? 'Uploads and warehouse loads'
+              : 'Refreshing warehouse history…'
           }
-          icon={FiDatabase}
-          tone="primary"
-        />
-        <StatCard
-          label="Last Upload Time"
-          value={
-            dataset?.timestamp ? formatTimestamp(dataset.timestamp) : '—'
-          }
-          hint={dataset ? 'From current session upload' : 'No upload in this session'}
-          icon={FiClock}
-          tone="accent"
-          compact
-        />
-      </section>
-
-      <div className="dashboard-split">
-        <ChartCard title="Recent Activity" subtitle="Uploads and warehouse loads">
+        >
           {recentActivity.length ? (
             <ul className="activity-list">
               {recentActivity.map((event) => (
@@ -184,7 +191,7 @@ function Dashboard() {
                     <p className="activity-list__title">{event.title}</p>
                     <p className="activity-list__detail">{event.detail}</p>
                   </div>
-                  <time className="activity-list__time">
+                  <time className="activity-list__time" dateTime={event.timestamp || undefined}>
                     {formatTimestamp(event.timestamp)}
                   </time>
                 </li>
@@ -192,12 +199,14 @@ function Dashboard() {
             </ul>
           ) : (
             <p className="chart-card__empty">
-              No recent activity yet. Upload a dataset or load to the warehouse.
+              {historyReady
+                ? 'No recent activity yet. Upload a dataset or load to the warehouse.'
+                : 'Loading activity…'}
             </p>
           )}
         </ChartCard>
 
-        <ChartCard title="Quick Actions" subtitle="Jump to the next workflow step">
+        <ChartCard title="Quick actions" subtitle="Jump to common workflows">
           <div className="quick-actions">
             {QUICK_ACTIONS.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to} className="quick-actions__item">
@@ -207,7 +216,7 @@ function Dashboard() {
             ))}
           </div>
         </ChartCard>
-      </div>
+      </section>
     </div>
   )
 }

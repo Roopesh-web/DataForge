@@ -1,6 +1,7 @@
-import { useCallback, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiFile, FiUploadCloud, FiX } from 'react-icons/fi'
+import ErrorAlert from '../components/ErrorAlert'
 import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
 
@@ -41,7 +42,7 @@ function Upload() {
   const inFlightRef = useRef(false)
   const navigate = useNavigate()
   const toast = useToast()
-  const { uploadDataset, clearError, loading } = useDataset()
+  const { uploadDataset, clearError, loading, error } = useDataset()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -50,6 +51,11 @@ function Upload() {
   const [validationError, setValidationError] = useState(null)
 
   const busy = uploading || loading
+
+  useEffect(() => {
+    // Avoid showing stale errors from other pages on the upload screen.
+    clearError()
+  }, [clearError])
 
   const clearSelection = useCallback(() => {
     setSelectedFile(null)
@@ -95,14 +101,6 @@ function Upload() {
   const onDragLeave = (event) => {
     event.preventDefault()
     setIsDragging(false)
-  }
-
-  const onDropzoneKeyDown = (event) => {
-    if (busy) return
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      inputRef.current?.click()
-    }
   }
 
   const handleUpload = async () => {
@@ -162,6 +160,17 @@ function Upload() {
 
       <div className="upload-shell">
         <div className="upload-card">
+          {error &&
+          error.error !== 'REQUEST_CANCELLED' &&
+          error.error !== 'REQUEST_IN_FLIGHT' ? (
+            <ErrorAlert
+              error={error}
+              title="Upload failed"
+              onDismiss={clearError}
+              retryDisabled={busy}
+            />
+          ) : null}
+
           <section
             className={`upload-dropzone${isDragging ? ' upload-dropzone--active' : ''}${
               busy ? ' upload-dropzone--disabled' : ''
@@ -169,11 +178,7 @@ function Upload() {
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            onKeyDown={onDropzoneKeyDown}
-            tabIndex={busy ? -1 : 0}
-            role="button"
-            aria-label="File upload dropzone. Press Enter to browse files."
-            aria-disabled={busy}
+            aria-label="File upload dropzone"
           >
             <div className="upload-dropzone__icon" aria-hidden="true">
               <FiUploadCloud size={40} />
@@ -189,6 +194,7 @@ function Upload() {
               accept={ACCEPT_ATTR}
               disabled={busy}
               onChange={onInputChange}
+              aria-label="Choose dataset file"
             />
 
             <label

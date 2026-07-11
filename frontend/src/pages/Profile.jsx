@@ -14,6 +14,7 @@ import PageSkeleton from '../components/Skeleton'
 import StatCard from '../components/StatCard'
 import { useToast } from '../hooks/useToast'
 import { useDataset } from '../hooks/useDataset'
+import { datasetDisplayName } from '../utils/format'
 
 function formatNumber(value) {
   if (value == null || Number.isNaN(Number(value))) return '—'
@@ -23,10 +24,6 @@ function formatNumber(value) {
 function formatPercent(value) {
   if (value == null || Number.isNaN(Number(value))) return '—'
   return `${Number(value).toFixed(2)}%`
-}
-
-function datasetDisplayName(dataset, storedFilename) {
-  return dataset?.original_filename || storedFilename || 'Untitled dataset'
 }
 
 function TypeBadge({ type }) {

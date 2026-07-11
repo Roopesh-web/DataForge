@@ -80,6 +80,7 @@ function AppLayout() {
           title={meta.title}
           subtitle={meta.subtitle}
           onMenuClick={() => setSidebarOpen((open) => !open)}
+          menuOpen={sidebarOpen}
         />
         <main id="main-content" className="app-content" tabIndex={-1}>
           <Outlet />

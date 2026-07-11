@@ -1,36 +1,48 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
+import PageSkeleton from './components/Skeleton'
 import { DatasetProvider } from './context/DatasetContext'
+import { HealthProvider } from './context/HealthContext'
 import { ToastProvider } from './context/ToastContext'
-import Analytics from './pages/Analytics'
-import Dashboard from './pages/Dashboard'
-import History from './pages/History'
-import Profile from './pages/Profile'
-import Quality from './pages/Quality'
-import Settings from './pages/Settings'
-import Upload from './pages/Upload'
-import Warehouse from './pages/Warehouse'
 import './App.css'
+
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Upload = lazy(() => import('./pages/Upload'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Quality = lazy(() => import('./pages/Quality'))
+const Warehouse = lazy(() => import('./pages/Warehouse'))
+const History = lazy(() => import('./pages/History'))
+const Settings = lazy(() => import('./pages/Settings'))
+
+function RouteFallback() {
+  return <PageSkeleton cards={4} label="Loading page…" />
+}
 
 function App() {
   return (
     <DatasetProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="upload" element={<Upload />} />
-              <Route path="overview" element={<Profile />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="quality" element={<Quality />} />
-              <Route path="warehouse" element={<Warehouse />} />
-              <Route path="history" element={<History />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <HealthProvider>
+          <BrowserRouter>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route element={<AppLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="upload" element={<Upload />} />
+                  <Route path="overview" element={<Profile />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="quality" element={<Quality />} />
+                  <Route path="warehouse" element={<Warehouse />} />
+                  <Route path="history" element={<History />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </HealthProvider>
       </ToastProvider>
     </DatasetProvider>
   )
