@@ -21,11 +21,17 @@ function RouteFallback() {
 }
 
 function App() {
+  // Vite `base` → import.meta.env.BASE_URL (e.g. "/" or "/dataforge/")
+  const basename =
+    import.meta.env.BASE_URL === '/'
+      ? undefined
+      : import.meta.env.BASE_URL.replace(/\/$/, '')
+
   return (
     <DatasetProvider>
       <ToastProvider>
         <HealthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={basename}>
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route element={<AppLayout />}>

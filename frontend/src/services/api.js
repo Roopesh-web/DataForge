@@ -2,20 +2,19 @@ import axios from 'axios'
 
 /**
  * Resolve the API base URL.
- * - If VITE_API_URL is set (non-empty), use it.
- * - In Vite dev with no override, use same-origin ("") so requests go through
- *   the Vite proxy and avoid CORS failures against localhost:8000.
- * - Otherwise fall back to http://localhost:8000.
+ *
+ * Priority:
+ * 1. `VITE_API_URL` when set (required for typical production deploys to a separate API host)
+ * 2. Empty string (same-origin) — Vite proxy in development, or reverse-proxy in production
+ *
+ * Never hardcode a production API host. Set `VITE_API_URL` at build time for deployed backends.
  */
 export function resolveApiBaseUrl() {
   const configured = import.meta.env.VITE_API_URL
   if (typeof configured === 'string' && configured.trim() !== '') {
     return configured.trim().replace(/\/$/, '')
   }
-  if (import.meta.env.DEV) {
-    return ''
-  }
-  return 'http://localhost:8000'
+  return ''
 }
 
 export const API_BASE_URL = resolveApiBaseUrl()

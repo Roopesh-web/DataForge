@@ -27,9 +27,9 @@ import {
 function displayBackendUrl() {
   if (API_BASE_URL) return API_BASE_URL
   if (import.meta.env.DEV) {
-    return 'http://localhost:8000 (Vite proxy)'
+    return 'Same-origin (Vite dev proxy)'
   }
-  return 'http://localhost:8000'
+  return 'Same-origin (relative)'
 }
 
 function formatCheckedAt(date) {
