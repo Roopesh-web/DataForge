@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiUploadCloud } from 'react-icons/fi'
 import EmptyState from '../components/EmptyState'
@@ -28,6 +28,7 @@ function Warehouse() {
     warehouseHistory,
     lastWarehouseLoad,
     loading,
+    loadingAction,
     error,
     clearError,
     loadWarehouse,
@@ -38,24 +39,36 @@ function Warehouse() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const inFlightRef = useRef(false)
 
-  const refreshHistory = useCallback(async () => {
-    setLoadingHistory(true)
-    clearError()
-    try {
-      await fetchWarehouseHistory(50, { trackLoading: false })
-    } catch {
-      // Error stored in context.
-    } finally {
-      setLoadingHistory(false)
-    }
-  }, [fetchWarehouseHistory, clearError])
+  const visibleError =
+    error &&
+    error.error !== 'REQUEST_CANCELLED' &&
+    error.error !== 'REQUEST_IN_FLIGHT'
+      ? error
+      : null
 
   useEffect(() => {
+    const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      void refreshHistory()
+      void (async () => {
+        setLoadingHistory(true)
+        clearError()
+        try {
+          await fetchWarehouseHistory(50, {
+            trackLoading: false,
+            signal: controller.signal,
+          })
+        } catch (err) {
+          if (err?.error === 'REQUEST_CANCELLED' || controller.signal.aborted) return
+        } finally {
+          if (!controller.signal.aborted) setLoadingHistory(false)
+        }
+      })()
     }, 0)
-    return () => window.clearTimeout(timer)
-  }, [refreshHistory])
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [fetchWarehouseHistory, clearError])
 
   const loads = useMemo(
     () => getHistoryLoads(warehouseHistory),
@@ -68,9 +81,10 @@ function Warehouse() {
   }, [loads, storedFilename])
 
   const latestStatus = lastWarehouseLoad || latestForDataset
+  const warehouseBusy = loadingAction === 'warehouse' || loading
 
   const handleLoad = async () => {
-    if (!storedFilename || loading || inFlightRef.current) return
+    if (!storedFilename || warehouseBusy || inFlightRef.current) return
 
     inFlightRef.current = true
     clearError()
@@ -81,6 +95,7 @@ function Warehouse() {
         `Loaded ${formatNumber(result.rows_loaded)} rows into ${result.table_name}.`,
       )
     } catch (err) {
+      if (err?.error === 'REQUEST_CANCELLED') return
       toast.error(err.message || 'Warehouse load failed.')
     } finally {
       inFlightRef.current = false
@@ -119,14 +134,14 @@ function Warehouse() {
         </p>
       </header>
 
-      {error ? (
+      {visibleError ? (
         <ErrorAlert
-          error={error}
+          error={visibleError}
           title="Warehouse request failed"
           onDismiss={clearError}
           onRetry={handleLoad}
           retryLabel="Retry warehouse load"
-          retryDisabled={loading || loadingHistory}
+          retryDisabled={warehouseBusy || loadingHistory}
         />
       ) : null}
 
@@ -143,14 +158,16 @@ function Warehouse() {
           type="button"
           className="upload-submit-btn"
           onClick={handleLoad}
-          disabled={loading}
-          aria-busy={loading}
+          disabled={warehouseBusy}
+          aria-busy={warehouseBusy}
         >
-          {loading ? 'Loading to warehouse…' : 'Load to Warehouse'}
+          {warehouseBusy ? 'Loading to warehouse…' : 'Load to Warehouse'}
         </button>
       </section>
 
-      {loading ? <PageSkeleton cards={2} showPanel={false} label="Loading dataset into PostgreSQL…" /> : null}
+      {loadingAction === 'warehouse' ? (
+        <PageSkeleton cards={2} showPanel={false} label="Loading dataset into PostgreSQL…" />
+      ) : null}
 
       <section className="warehouse-status-card" aria-live="polite">
         <h3 className="warehouse-status-card__title">Latest load status</h3>

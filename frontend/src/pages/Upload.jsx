@@ -138,10 +138,10 @@ function Upload() {
         `Uploaded ${result.original_filename || selectedFile.name} successfully.`,
       )
 
-      window.setTimeout(() => {
-        navigate('/overview')
-      }, 700)
+      // Context already updated storedFilename/dataset before uploadDataset resolved.
+      navigate('/overview')
     } catch (err) {
+      if (err?.error === 'REQUEST_CANCELLED') return
       setProgress(0)
       toast.error(err.message || 'Upload failed. Please try again.')
     } finally {
@@ -152,7 +152,7 @@ function Upload() {
 
   return (
     <div className="page upload-page">
-      <header className="page__header">
+      <header className="page__header upload-page__header">
         <span className="page__eyebrow">Ingestion</span>
         <h2 className="page__heading">Upload dataset</h2>
         <p className="page__description">
@@ -160,99 +160,103 @@ function Upload() {
         </p>
       </header>
 
-      <section
-        className={`upload-dropzone${isDragging ? ' upload-dropzone--active' : ''}${
-          busy ? ' upload-dropzone--disabled' : ''
-        }`}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        onKeyDown={onDropzoneKeyDown}
-        tabIndex={busy ? -1 : 0}
-        role="button"
-        aria-label="File upload dropzone. Press Enter to browse files."
-        aria-disabled={busy}
-      >
-        <div className="upload-dropzone__icon" aria-hidden="true">
-          <FiUploadCloud size={36} />
+      <div className="upload-shell">
+        <div className="upload-card">
+          <section
+            className={`upload-dropzone${isDragging ? ' upload-dropzone--active' : ''}${
+              busy ? ' upload-dropzone--disabled' : ''
+            }`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onKeyDown={onDropzoneKeyDown}
+            tabIndex={busy ? -1 : 0}
+            role="button"
+            aria-label="File upload dropzone. Press Enter to browse files."
+            aria-disabled={busy}
+          >
+            <div className="upload-dropzone__icon" aria-hidden="true">
+              <FiUploadCloud size={40} />
+            </div>
+            <p className="upload-dropzone__title">Drag & drop your file here</p>
+            <p className="upload-dropzone__hint">CSV · XLSX · JSON · max 100 MB</p>
+
+            <input
+              ref={inputRef}
+              id={inputId}
+              type="file"
+              className="upload-dropzone__input"
+              accept={ACCEPT_ATTR}
+              disabled={busy}
+              onChange={onInputChange}
+            />
+
+            <label
+              htmlFor={inputId}
+              className={`upload-browse-btn${busy ? ' is-disabled' : ''}`}
+              aria-disabled={busy}
+            >
+              Browse Files
+            </label>
+          </section>
+
+          {selectedFile ? (
+            <section className="upload-file-card" aria-live="polite">
+              <div className="upload-file-card__icon" aria-hidden="true">
+                <FiFile size={20} />
+              </div>
+              <div className="upload-file-card__meta">
+                <p className="upload-file-card__name">{selectedFile.name}</p>
+                <p className="upload-file-card__size">{formatFileSize(selectedFile.size)}</p>
+              </div>
+              <button
+                type="button"
+                className="upload-file-card__clear"
+                onClick={clearSelection}
+                disabled={busy}
+                aria-label="Remove selected file"
+              >
+                <FiX size={16} aria-hidden="true" />
+              </button>
+            </section>
+          ) : null}
+
+          {validationError ? (
+            <p className="upload-validation" role="alert">
+              {validationError}
+            </p>
+          ) : null}
+
+          {(busy || progress > 0) && selectedFile ? (
+            <section className="upload-progress" aria-label="Upload progress">
+              <div className="upload-progress__header">
+                <span>{busy ? 'Uploading…' : 'Upload complete'}</span>
+                <span>{progress}%</span>
+              </div>
+              <div
+                className="upload-progress__track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+              >
+                <div className="upload-progress__bar" style={{ width: `${progress}%` }} />
+              </div>
+            </section>
+          ) : null}
+
+          <div className="upload-actions">
+            <button
+              type="button"
+              className="upload-submit-btn"
+              onClick={handleUpload}
+              disabled={!selectedFile || busy}
+              aria-busy={busy}
+            >
+              {busy ? 'Uploading…' : 'Upload to DataForge'}
+            </button>
+          </div>
         </div>
-        <p className="upload-dropzone__title">Drag & drop your file here</p>
-        <p className="upload-dropzone__hint">CSV · XLSX · JSON · max 100 MB</p>
-
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="file"
-          className="upload-dropzone__input"
-          accept={ACCEPT_ATTR}
-          disabled={busy}
-          onChange={onInputChange}
-        />
-
-        <label
-          htmlFor={inputId}
-          className={`upload-browse-btn${busy ? ' is-disabled' : ''}`}
-          aria-disabled={busy}
-        >
-          Browse Files
-        </label>
-      </section>
-
-      {selectedFile ? (
-        <section className="upload-file-card" aria-live="polite">
-          <div className="upload-file-card__icon" aria-hidden="true">
-            <FiFile size={20} />
-          </div>
-          <div className="upload-file-card__meta">
-            <p className="upload-file-card__name">{selectedFile.name}</p>
-            <p className="upload-file-card__size">{formatFileSize(selectedFile.size)}</p>
-          </div>
-          <button
-            type="button"
-            className="upload-file-card__clear"
-            onClick={clearSelection}
-            disabled={busy}
-            aria-label="Remove selected file"
-          >
-            <FiX size={16} aria-hidden="true" />
-          </button>
-        </section>
-      ) : null}
-
-      {validationError ? (
-        <p className="upload-validation" role="alert">
-          {validationError}
-        </p>
-      ) : null}
-
-      {(busy || progress > 0) && selectedFile ? (
-        <section className="upload-progress" aria-label="Upload progress">
-          <div className="upload-progress__header">
-            <span>{busy ? 'Uploading…' : 'Upload complete'}</span>
-            <span>{progress}%</span>
-          </div>
-          <div
-            className="upload-progress__track"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progress}
-          >
-            <div className="upload-progress__bar" style={{ width: `${progress}%` }} />
-          </div>
-        </section>
-      ) : null}
-
-      <div className="upload-actions">
-        <button
-          type="button"
-          className="upload-submit-btn"
-          onClick={handleUpload}
-          disabled={!selectedFile || busy}
-          aria-busy={busy}
-        >
-          {busy ? 'Uploading…' : 'Upload to DataForge'}
-        </button>
       </div>
     </div>
   )

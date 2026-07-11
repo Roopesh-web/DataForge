@@ -34,7 +34,7 @@ const PAGE_META = {
   },
   '/settings': {
     title: 'Settings',
-    subtitle: 'Connection and application preferences',
+    subtitle: 'Platform information and runtime details',
   },
 }
 

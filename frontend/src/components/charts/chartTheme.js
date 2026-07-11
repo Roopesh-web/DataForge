@@ -13,9 +13,10 @@ export const CHART_COLORS = {
 export const chartTooltipStyle = {
   backgroundColor: CHART_COLORS.tooltipBg,
   border: `1px solid ${CHART_COLORS.tooltipBorder}`,
-  borderRadius: 8,
+  borderRadius: 10,
   color: '#f8fafc',
   fontSize: 12,
+  boxShadow: '0 8px 24px rgba(2, 6, 23, 0.45)',
 }
 
 export function formatNumber(value, digits = 2) {

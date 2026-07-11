@@ -9,6 +9,7 @@ import {
   FiUploadCloud,
   FiLayers,
 } from 'react-icons/fi'
+import { APP_VERSION } from '../config/appInfo'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: FiHome, end: true },
@@ -26,11 +27,11 @@ function Sidebar({ open = false, onNavigate }) {
     <aside className={`sidebar${open ? ' sidebar--open' : ''}`} aria-label="Main navigation">
       <div className="sidebar__brand">
         <div className="sidebar__logo" aria-hidden="true">
-          DF
+          <span className="sidebar__logo-mark">DF</span>
         </div>
         <div className="sidebar__brand-text">
           <span className="sidebar__brand-name">DataForge</span>
-          <span className="sidebar__brand-tag">Data Platform</span>
+          <span className="sidebar__brand-tag">Enterprise Analytics</span>
         </div>
       </div>
 
@@ -52,9 +53,8 @@ function Sidebar({ open = false, onNavigate }) {
       </nav>
 
       <div className="sidebar__footer">
-        DataForge v1.0
-        <br />
-        FastAPI · React · PostgreSQL
+        <span className="sidebar__footer-version">DataForge v{APP_VERSION}</span>
+        <span className="sidebar__footer-stack">FastAPI · React · PostgreSQL</span>
       </div>
     </aside>
   )

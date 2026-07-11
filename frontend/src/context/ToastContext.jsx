@@ -23,14 +23,24 @@ export function ToastProvider({ children }) {
     return id
   }, [])
 
+  const success = useCallback(
+    (message, options) => pushToast('success', message, options),
+    [pushToast],
+  )
+
+  const error = useCallback(
+    (message, options) => pushToast('error', message, options),
+    [pushToast],
+  )
+
   const value = useMemo(
     () => ({
       pushToast,
       dismissToast,
-      success: (message, options) => pushToast('success', message, options),
-      error: (message, options) => pushToast('error', message, options),
+      success,
+      error,
     }),
-    [pushToast, dismissToast],
+    [pushToast, dismissToast, success, error],
   )
 
   return (

@@ -38,6 +38,21 @@ export function parseApiError(error) {
     }
   }
 
+  if (
+    axios.isCancel?.(error) ||
+    error.code === 'ERR_CANCELED' ||
+    error.name === 'CanceledError' ||
+    error.name === 'AbortError'
+  ) {
+    return {
+      message: 'Request cancelled',
+      error: 'REQUEST_CANCELLED',
+      details: null,
+      requestId: null,
+      status: null,
+    }
+  }
+
   if (error.response) {
     const payload = error.response.data
     const status = error.response.status
@@ -114,7 +129,7 @@ export function parseApiError(error) {
 
   return {
     message: error.message || 'An unexpected error occurred',
-    error: 'CLIENT_ERROR',
+    error: error.error || 'CLIENT_ERROR',
     details: null,
     requestId: null,
     status: null,
@@ -170,48 +185,85 @@ export async function checkHealth() {
   return data
 }
 
-export async function uploadFile(file, { onUploadProgress } = {}) {
+/**
+ * Reads title/version from the existing FastAPI OpenAPI document.
+ * Used only for read-only Settings display — does not change API behavior.
+ */
+export async function fetchOpenApiInfo() {
+  const response = await apiClient.get('/openapi.json', {
+    timeout: HEALTH_TIMEOUT_MS,
+  })
+  const info = response.data?.info
+  if (!info || typeof info !== 'object') {
+    return { title: null, version: null, description: null }
+  }
+  return {
+    title: typeof info.title === 'string' ? info.title : null,
+    version: typeof info.version === 'string' ? info.version : null,
+    description: typeof info.description === 'string' ? info.description : null,
+  }
+}
+
+export async function uploadFile(file, { onUploadProgress, signal } = {}) {
   const formData = new FormData()
   formData.append('file', file)
 
   // Let the browser set multipart Content-Type with boundary.
   const response = await apiClient.post('/upload', formData, {
     onUploadProgress,
+    signal,
   })
   return response.data
 }
 
-export async function profileDataset(storedFilename) {
-  const response = await apiClient.post('/profile', {
-    stored_filename: storedFilename,
-  })
+export async function profileDataset(storedFilename, { signal } = {}) {
+  const response = await apiClient.post(
+    '/profile',
+    {
+      stored_filename: storedFilename,
+    },
+    { signal },
+  )
   return response.data
 }
 
-export async function analyzeDataset(storedFilename) {
-  const response = await apiClient.post('/analytics', {
-    stored_filename: storedFilename,
-  })
+export async function analyzeDataset(storedFilename, { signal } = {}) {
+  const response = await apiClient.post(
+    '/analytics',
+    {
+      stored_filename: storedFilename,
+    },
+    { signal },
+  )
   return response.data
 }
 
-export async function qualityCheck(storedFilename) {
-  const response = await apiClient.post('/quality-check', {
-    stored_filename: storedFilename,
-  })
+export async function qualityCheck(storedFilename, { signal } = {}) {
+  const response = await apiClient.post(
+    '/quality-check',
+    {
+      stored_filename: storedFilename,
+    },
+    { signal },
+  )
   return response.data
 }
 
-export async function loadToWarehouse(storedFilename) {
-  const response = await apiClient.post('/warehouse/load', {
-    stored_filename: storedFilename,
-  })
+export async function loadToWarehouse(storedFilename, { signal } = {}) {
+  const response = await apiClient.post(
+    '/warehouse/load',
+    {
+      stored_filename: storedFilename,
+    },
+    { signal },
+  )
   return response.data
 }
 
-export async function getWarehouseHistory(limit = 50) {
+export async function getWarehouseHistory(limit = 50, { signal } = {}) {
   const response = await apiClient.get('/warehouse/history', {
     params: { limit },
+    signal,
   })
   return response.data
 }

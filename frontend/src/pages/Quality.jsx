@@ -72,7 +72,7 @@ function Quality() {
   const {
     storedFilename,
     quality,
-    loading,
+    loadingAction,
     error,
     clearError,
     fetchQuality,
@@ -81,16 +81,18 @@ function Quality() {
   const notifiedRef = useRef(null)
 
   const requestQuality = useCallback(
-    async ({ notify = false } = {}) => {
+    async ({ notify = false, signal } = {}) => {
       if (!storedFilename) return
       clearError()
       try {
-        await fetchQuality(storedFilename)
+        await fetchQuality(storedFilename, { signal })
+        if (signal?.aborted) return
         if (notify || notifiedRef.current !== storedFilename) {
           toast.success('Data quality check completed successfully.')
           notifiedRef.current = storedFilename
         }
-      } catch {
+      } catch (err) {
+        if (err?.error === 'REQUEST_CANCELLED' || signal?.aborted) return
         notifiedRef.current = null
       }
     },
@@ -99,11 +101,23 @@ function Quality() {
 
   useEffect(() => {
     if (!storedFilename) return undefined
-    void requestQuality({ notify: true })
-    return undefined
-  }, [storedFilename, requestQuality])
+    if (quality?.stored_filename === storedFilename) return undefined
+
+    const controller = new AbortController()
+    void requestQuality({ notify: true, signal: controller.signal })
+    return () => {
+      controller.abort()
+    }
+  }, [storedFilename, quality?.stored_filename, requestQuality])
 
   const matches = quality?.stored_filename === storedFilename
+  const visibleError =
+    error &&
+    error.error !== 'REQUEST_CANCELLED' &&
+    error.error !== 'REQUEST_IN_FLIGHT'
+      ? error
+      : null
+  const showLoader = !matches && loadingAction === 'quality'
   const summary = matches ? quality.validation_summary : null
   const report = useMemo(
     () => (matches ? quality.validation_report || {} : {}),
@@ -169,8 +183,6 @@ function Quality() {
     )
   }
 
-  const showLoader = loading && !matches
-
   return (
     <div className="page quality-page">
       <header className="page__header">
@@ -182,14 +194,14 @@ function Quality() {
         </p>
       </header>
 
-      {error ? (
+      {visibleError ? (
         <ErrorAlert
-          error={error}
+          error={visibleError}
           title="Quality check failed"
           onDismiss={clearError}
           onRetry={() => requestQuality({ notify: true })}
           retryLabel="Retry quality check"
-          retryDisabled={loading}
+          retryDisabled={loadingAction === 'quality'}
         />
       ) : null}
 
@@ -321,14 +333,14 @@ function Quality() {
             </div>
           </section>
         </>
-      ) : !loading ? (
+      ) : !showLoader ? (
         <EmptyState
           icon={FiAlertTriangle}
           title="Quality results unavailable"
           text="The quality-check endpoint did not return data for this file."
           actionLabel="Retry quality check"
           onAction={() => requestQuality({ notify: true })}
-          actionDisabled={loading}
+          actionDisabled={loadingAction === 'quality'}
         />
       ) : null}
     </div>

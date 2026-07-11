@@ -26,29 +26,44 @@ function History() {
     error,
     clearError,
     fetchWarehouseHistory,
-    loading,
+    loadingAction,
   } = useDataset()
 
   const [search, setSearch] = useState('')
   const [loadingHistory, setLoadingHistory] = useState(true)
 
-  const refreshHistory = useCallback(async () => {
-    setLoadingHistory(true)
-    clearError()
-    try {
-      await fetchWarehouseHistory(100, { trackLoading: false })
-    } catch {
-      // Error stored in context.
-    } finally {
-      setLoadingHistory(false)
-    }
-  }, [fetchWarehouseHistory, clearError])
+  const visibleError =
+    error &&
+    error.error !== 'REQUEST_CANCELLED' &&
+    error.error !== 'REQUEST_IN_FLIGHT'
+      ? error
+      : null
+
+  const refreshHistory = useCallback(
+    async (signal) => {
+      setLoadingHistory(true)
+      clearError()
+      try {
+        await fetchWarehouseHistory(100, { trackLoading: false, signal })
+      } catch (err) {
+        if (err?.error === 'REQUEST_CANCELLED' || signal?.aborted) return
+        // Error stored in context.
+      } finally {
+        if (!signal?.aborted) setLoadingHistory(false)
+      }
+    },
+    [fetchWarehouseHistory, clearError],
+  )
 
   useEffect(() => {
+    const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      void refreshHistory()
+      void refreshHistory(controller.signal)
     }, 0)
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
   }, [refreshHistory])
 
   const loads = useMemo(
@@ -123,14 +138,14 @@ function History() {
         </p>
       </header>
 
-      {error ? (
+      {visibleError ? (
         <ErrorAlert
-          error={error}
+          error={visibleError}
           title="Failed to load history"
           onDismiss={clearError}
-          onRetry={refreshHistory}
+          onRetry={() => refreshHistory()}
           retryLabel="Retry history"
-          retryDisabled={loadingHistory || loading}
+          retryDisabled={loadingHistory || loadingAction === 'history'}
         />
       ) : null}
 

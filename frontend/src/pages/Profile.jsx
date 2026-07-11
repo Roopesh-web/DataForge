@@ -39,7 +39,7 @@ function Profile() {
     storedFilename,
     dataset,
     profile,
-    loading,
+    loadingAction,
     error,
     clearError,
     fetchProfile,
@@ -48,16 +48,18 @@ function Profile() {
   const notifiedRef = useRef(null)
 
   const requestProfile = useCallback(
-    async ({ notify = false } = {}) => {
+    async ({ notify = false, signal } = {}) => {
       if (!storedFilename) return
       clearError()
       try {
-        await fetchProfile(storedFilename)
+        await fetchProfile(storedFilename, { signal })
+        if (signal?.aborted) return
         if (notify || notifiedRef.current !== storedFilename) {
           toast.success('Dataset profile loaded successfully.')
           notifiedRef.current = storedFilename
         }
-      } catch {
+      } catch (err) {
+        if (err?.error === 'REQUEST_CANCELLED' || signal?.aborted) return
         notifiedRef.current = null
       }
     },
@@ -66,11 +68,23 @@ function Profile() {
 
   useEffect(() => {
     if (!storedFilename) return undefined
-    void requestProfile({ notify: true })
-    return undefined
-  }, [storedFilename, requestProfile])
+    if (profile?.stored_filename === storedFilename) return undefined
+
+    const controller = new AbortController()
+    void requestProfile({ notify: true, signal: controller.signal })
+    return () => {
+      controller.abort()
+    }
+  }, [storedFilename, profile?.stored_filename, requestProfile])
 
   const profileMatches = profile?.stored_filename === storedFilename
+  const visibleError =
+    error &&
+    error.error !== 'REQUEST_CANCELLED' &&
+    error.error !== 'REQUEST_IN_FLIGHT'
+      ? error
+      : null
+  const showLoader = !profileMatches && loadingAction === 'profile'
 
   const missingValues = useMemo(() => {
     if (!profileMatches || !profile?.columns?.length) return 0
@@ -175,7 +189,6 @@ function Profile() {
   }
 
   const name = datasetDisplayName(dataset, storedFilename)
-  const showLoader = loading && !profileMatches
 
   return (
     <div className="page overview-page">
@@ -192,14 +205,14 @@ function Profile() {
         </p>
       </header>
 
-      {error ? (
+      {visibleError ? (
         <ErrorAlert
-          error={error}
+          error={visibleError}
           title="Failed to load profile"
           onDismiss={clearError}
           onRetry={() => requestProfile({ notify: true })}
           retryLabel="Retry profile"
-          retryDisabled={loading}
+          retryDisabled={loadingAction === 'profile'}
         />
       ) : null}
 
@@ -288,14 +301,14 @@ function Profile() {
             />
           </section>
         </>
-      ) : !loading ? (
+      ) : !showLoader ? (
         <EmptyState
           icon={FiAlertTriangle}
           title="Profile unavailable"
           text="Profiling did not return data for this file. Try again or upload a new dataset."
           actionLabel="Retry profile"
           onAction={() => requestProfile({ notify: true })}
-          actionDisabled={loading}
+          actionDisabled={loadingAction === 'profile'}
         />
       ) : null}
     </div>

@@ -27,7 +27,7 @@ function Analytics() {
   const {
     storedFilename,
     analytics,
-    loading,
+    loadingAction,
     error,
     clearError,
     fetchAnalytics,
@@ -39,16 +39,18 @@ function Analytics() {
   const [categoryColumn, setCategoryColumn] = useState('')
 
   const requestAnalytics = useCallback(
-    async ({ notify = false } = {}) => {
+    async ({ notify = false, signal } = {}) => {
       if (!storedFilename) return
       clearError()
       try {
-        await fetchAnalytics(storedFilename)
+        await fetchAnalytics(storedFilename, { signal })
+        if (signal?.aborted) return
         if (notify || notifiedRef.current !== storedFilename) {
           toast.success('Analytics completed successfully.')
           notifiedRef.current = storedFilename
         }
-      } catch {
+      } catch (err) {
+        if (err?.error === 'REQUEST_CANCELLED' || signal?.aborted) return
         notifiedRef.current = null
       }
     },
@@ -57,11 +59,23 @@ function Analytics() {
 
   useEffect(() => {
     if (!storedFilename) return undefined
-    void requestAnalytics({ notify: true })
-    return undefined
-  }, [storedFilename, requestAnalytics])
+    if (analytics?.stored_filename === storedFilename) return undefined
+
+    const controller = new AbortController()
+    void requestAnalytics({ notify: true, signal: controller.signal })
+    return () => {
+      controller.abort()
+    }
+  }, [storedFilename, analytics?.stored_filename, requestAnalytics])
 
   const matches = analytics?.stored_filename === storedFilename
+  const visibleError =
+    error &&
+    error.error !== 'REQUEST_CANCELLED' &&
+    error.error !== 'REQUEST_IN_FLIGHT'
+      ? error
+      : null
+  const showLoader = !matches && loadingAction === 'analytics'
 
   const numericColumns = useMemo(
     () => (matches ? analytics.dataset_summary?.numeric_columns || [] : []),
@@ -195,8 +209,6 @@ function Analytics() {
     )
   }
 
-  const showLoader = loading && !matches
-
   return (
     <div className="page analytics-page">
       <header className="page__header">
@@ -208,14 +220,14 @@ function Analytics() {
         </p>
       </header>
 
-      {error ? (
+      {visibleError ? (
         <ErrorAlert
-          error={error}
+          error={visibleError}
           title="Analytics request failed"
           onDismiss={clearError}
           onRetry={() => requestAnalytics({ notify: true })}
           retryLabel="Retry analytics"
-          retryDisabled={loading}
+          retryDisabled={loadingAction === 'analytics'}
         />
       ) : null}
 
@@ -424,14 +436,14 @@ function Analytics() {
             </div>
           </section>
         </>
-      ) : !loading ? (
+      ) : !showLoader ? (
         <EmptyState
           icon={FiAlertTriangle}
           title="Analytics unavailable"
           text="The analytics endpoint did not return data for this file."
           actionLabel="Retry analytics"
           onAction={() => requestAnalytics({ notify: true })}
-          actionDisabled={loading}
+          actionDisabled={loadingAction === 'analytics'}
         />
       ) : null}
     </div>
