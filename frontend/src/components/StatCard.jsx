@@ -1,4 +1,4 @@
-function StatCard({ label, value, hint, icon: Icon, tone = 'primary' }) {
+function StatCard({ label, value, hint, icon: Icon, tone = 'primary', compact = false }) {
   const iconClass =
     tone === 'accent'
       ? 'stat-card__icon stat-card__icon--accent'
@@ -9,7 +9,7 @@ function StatCard({ label, value, hint, icon: Icon, tone = 'primary' }) {
           : 'stat-card__icon'
 
   return (
-    <article className="stat-card">
+    <article className={`stat-card${compact ? ' stat-card--compact' : ''}`}>
       <div className="stat-card__top">
         <span className="stat-card__label">{label}</span>
         {Icon ? (
@@ -18,8 +18,14 @@ function StatCard({ label, value, hint, icon: Icon, tone = 'primary' }) {
           </span>
         ) : null}
       </div>
-      <div className="stat-card__value">{value}</div>
-      {hint ? <p className="stat-card__hint">{hint}</p> : null}
+      <div className="stat-card__value" title={typeof value === 'string' ? value : undefined}>
+        {value}
+      </div>
+      {hint ? (
+        <p className="stat-card__hint" title={typeof hint === 'string' ? hint : undefined}>
+          {hint}
+        </p>
+      ) : null}
     </article>
   )
 }
