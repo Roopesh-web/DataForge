@@ -21,7 +21,7 @@ function DataTable({ columns = [], rows = [], emptyMessage = 'No data available.
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => {
-            const rowKey = row.id ?? row.name ?? rowIndex
+            const rowKey = row.id ?? row.rule_id ?? row.name ?? row.column ?? rowIndex
             return (
               <tr key={rowKey}>
                 {columns.map((column) => {
