@@ -7,10 +7,11 @@ from typing import Literal
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 ENV_FILE = BASE_DIR / ".env"
 
-load_dotenv(ENV_FILE)
+load_dotenv(ENV_FILE, override=True)
 
 
 class Settings(BaseModel):
@@ -102,3 +103,5 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+print("ENV FILE =", ENV_FILE)
+print("DATABASE_URL =", os.getenv("DATABASE_URL"))

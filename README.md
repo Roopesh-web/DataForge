@@ -137,6 +137,17 @@ pip install -r dashboard/requirements.txt
 streamlit run dashboard/app.py
 ```
 
+React frontend (production UI):
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+For production builds and deployment (`VITE_API_URL`, SPA hosting), see [frontend/README.md](frontend/README.md).
+
 ## API Endpoints
 
 - `GET /health`
