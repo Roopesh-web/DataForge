@@ -4,15 +4,24 @@ Enterprise data engineering platform for ingestion, profiling, analytics, data q
 
 **Stack:** FastAPI · Streamlit · PostgreSQL · Polars · SQLAlchemy
 
-## Architecture
+## 🚀 Live Demo
 
-| Service    | Port  | Description                          |
-|------------|-------|--------------------------------------|
-| PostgreSQL | 5432  | Database and warehouse storage       |
-| FastAPI    | 8000  | REST API backend                     |
-| Streamlit  | 8501  | Enterprise dashboard                 |
+| Service | URL |
+|---------|-----|
+| 🌐 Frontend | https://data-forge-puce-one.vercel.app |
+| ⚙️ Backend API | https://dataforge-production-ef36.up.railway.app |
+| 📖 Swagger Docs | https://dataforge-production-ef36.up.railway.app/docs |
+| ❤️ Health Check | https://dataforge-production-ef36.up.railway.app/health |
 
-## Docker Deployment
+## Deployment
+
+Frontend: Vercel
+
+Backend: Railway
+
+Database: PostgreSQL (Railway)
+
+Production deployment is publicly accessible.
 
 ### Prerequisites
 
