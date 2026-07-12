@@ -6,10 +6,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /app/backend/requirements.txt
+COPY requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-COPY backend /app/backend
+COPY . /app/backend
 
 ENV PYTHONPATH=/app/backend
 ENV PYTHONUNBUFFERED=1
