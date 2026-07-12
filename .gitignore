@@ -3,3 +3,8 @@ uploads/
 __pycache__/
 .pytest_cache/
 *.pyc
+# Environment
+.env
+.env.*
+backend/.env
+frontend/.env
