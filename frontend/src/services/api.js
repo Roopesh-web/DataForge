@@ -164,26 +164,6 @@ apiClient.interceptors.response.use(
   (error) => Promise.reject(toApiError(error)),
 )
 
-export async function checkHealth() {
-  const response = await apiClient.get('/health', {
-    timeout: HEALTH_TIMEOUT_MS,
-  })
-
-  // Axios already treats non-2xx as errors. Also require the known payload.
-  const data = response.data
-  if (!data || typeof data !== 'object' || data.status !== 'healthy') {
-    throw new ApiError({
-      message: 'Health check returned an unexpected payload',
-      error: 'HEALTHCHECK_FAILED',
-      details: null,
-      requestId: response.headers?.['x-request-id'] || null,
-      status: response.status,
-    })
-  }
-
-  return data
-}
-
 /**
  * Reads title/version from the existing FastAPI OpenAPI document.
  * Used only for read-only Settings display — does not change API behavior.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { version as reactVersion } from 'react'
 import {
   FiActivity,
@@ -10,7 +10,6 @@ import {
   FiMonitor,
   FiServer,
 } from 'react-icons/fi'
-import { useHealth } from '../hooks/useHealth'
 import { API_BASE_URL, fetchOpenApiInfo } from '../services/api'
 import {
   APP_NAME,
@@ -30,14 +29,6 @@ function displayBackendUrl() {
     return 'Same-origin (Vite dev proxy)'
   }
   return 'Same-origin (relative)'
-}
-
-function formatCheckedAt(date) {
-  if (!date) return '—'
-  return date.toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
 }
 
 function SettingsRow({ label, value, mono = false }) {
@@ -67,12 +58,29 @@ function SettingsCard({ icon: Icon, title, children, footer = null }) {
 }
 
 function Settings() {
-  const { status, lastCheckedAt, error, refresh, isChecking } = useHealth()
   const [backendInfo, setBackendInfo] = useState({
     title: null,
     version: null,
     loading: true,
   })
+  const [refreshing, setRefreshing] = useState(false)
+
+  const loadBackendInfo = useCallback(async () => {
+    try {
+      const info = await fetchOpenApiInfo()
+      setBackendInfo({
+        title: info.title,
+        version: info.version,
+        loading: false,
+      })
+    } catch {
+      setBackendInfo({
+        title: null,
+        version: null,
+        loading: false,
+      })
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -103,40 +111,19 @@ function Settings() {
   }, [])
 
   const handleRefresh = async () => {
-    await refresh()
+    setRefreshing(true)
     try {
-      const info = await fetchOpenApiInfo()
-      setBackendInfo({
-        title: info.title,
-        version: info.version,
-        loading: false,
-      })
-    } catch {
-      setBackendInfo((prev) => ({ ...prev, loading: false }))
+      await loadBackendInfo()
+    } finally {
+      setRefreshing(false)
     }
   }
 
-  const apiStatusLabel =
-    status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Checking…'
-
-  const apiStatusClass =
-    status === 'online'
-      ? 'settings-status settings-status--online'
-      : status === 'offline'
-        ? 'settings-status settings-status--offline'
-        : 'settings-status settings-status--checking'
-
   const environment = import.meta.env.PROD ? 'Production' : 'Development'
-  const postgresValue =
-    status === 'online'
-      ? 'Available via DataForge warehouse API'
-      : status === 'offline'
-        ? 'Unavailable while API is offline'
-        : 'Checking…'
 
   const backendVersionValue = backendInfo.loading
     ? 'Loading…'
-    : backendInfo.version || (status === 'online' ? APP_VERSION : 'Unavailable')
+    : backendInfo.version || APP_VERSION
 
   const fastapiValue = backendInfo.title
     ? `${backendInfo.title} (FastAPI)`
@@ -163,32 +150,21 @@ function Settings() {
                 type="button"
                 className="settings-refresh-btn"
                 onClick={handleRefresh}
-                disabled={isChecking}
+                disabled={refreshing || backendInfo.loading}
               >
-                {isChecking ? 'Checking…' : 'Refresh status'}
+                {refreshing ? 'Refreshing…' : 'Refresh info'}
               </button>
             </div>
           }
         >
           <SettingsRow label="Backend URL" value={displayBackendUrl()} mono />
-          <SettingsRow
-            label="API Status"
-            value={
-              <span className={apiStatusClass}>
-                <span className="settings-status__dot" aria-hidden="true" />
-                {apiStatusLabel}
-              </span>
-            }
-          />
-          <SettingsRow label="Last checked" value={formatCheckedAt(lastCheckedAt)} />
-          {error ? <SettingsRow label="Last error" value={error} /> : null}
         </SettingsCard>
 
         <SettingsCard icon={FiServer} title="Backend">
           <SettingsRow label="Backend version" value={backendVersionValue} mono />
           <SettingsRow label="FastAPI" value={fastapiValue} />
           <SettingsRow label="API docs" value="/docs" mono />
-          <SettingsRow label="Health endpoint" value="/health" mono />
+          <SettingsRow label="OpenAPI" value="/openapi.json" mono />
         </SettingsCard>
 
         <SettingsCard icon={FiMonitor} title="Frontend">
@@ -199,7 +175,7 @@ function Settings() {
         </SettingsCard>
 
         <SettingsCard icon={FiDatabase} title="Data layer">
-          <SettingsRow label="PostgreSQL" value={postgresValue} />
+          <SettingsRow label="PostgreSQL" value="Warehouse storage via DataForge API" />
           <SettingsRow label="Warehouse" value="PostgreSQL metadata + dynamic tables" />
           <SettingsRow label="Analytics engine" value="Polars (via FastAPI)" />
         </SettingsCard>

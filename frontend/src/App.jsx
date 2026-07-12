@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
 import PageSkeleton from './components/Skeleton'
 import { DatasetProvider } from './context/DatasetContext'
-import { HealthProvider } from './context/HealthContext'
 import { ToastProvider } from './context/ToastContext'
 import './App.css'
 
@@ -30,25 +29,23 @@ function App() {
   return (
     <DatasetProvider>
       <ToastProvider>
-        <HealthProvider>
-          <BrowserRouter basename={basename}>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route element={<AppLayout />}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="upload" element={<Upload />} />
-                  <Route path="overview" element={<Profile />} />
-                  <Route path="analytics" element={<Analytics />} />
-                  <Route path="quality" element={<Quality />} />
-                  <Route path="warehouse" element={<Warehouse />} />
-                  <Route path="history" element={<History />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </HealthProvider>
+        <BrowserRouter basename={basename}>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="upload" element={<Upload />} />
+                <Route path="overview" element={<Profile />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="quality" element={<Quality />} />
+                <Route path="warehouse" element={<Warehouse />} />
+                <Route path="history" element={<History />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
       </ToastProvider>
     </DatasetProvider>
   )

@@ -1,5 +1,4 @@
 import { FiMenu } from 'react-icons/fi'
-import ApiHealthBadge from './ApiHealthBadge'
 
 function Navbar({ title, subtitle, onMenuClick, menuOpen = false }) {
   return (
@@ -19,10 +18,6 @@ function Navbar({ title, subtitle, onMenuClick, menuOpen = false }) {
           <h1 className="navbar__title">{title}</h1>
           {subtitle ? <p className="navbar__subtitle">{subtitle}</p> : null}
         </div>
-      </div>
-
-      <div className="navbar__right">
-        <ApiHealthBadge />
       </div>
     </header>
   )

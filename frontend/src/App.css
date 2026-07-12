@@ -274,79 +274,6 @@
   margin-top: 0.15rem;
 }
 
-.navbar__right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
-}
-
-.navbar__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  border: 1px solid var(--df-border);
-  background: var(--df-card);
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--df-text-muted);
-  cursor: pointer;
-  font-family: inherit;
-  transition:
-    border-color var(--df-transition),
-    background var(--df-transition),
-    transform var(--df-transition-fast),
-    box-shadow var(--df-transition);
-}
-
-.navbar__badge:hover {
-  border-color: var(--df-border-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--df-shadow-sm);
-}
-
-.navbar__badge-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--df-text-muted);
-}
-
-.navbar__badge--online {
-  color: #a7f3d0;
-  border-color: rgba(16, 185, 129, 0.4);
-  background: var(--df-success-soft);
-}
-
-.navbar__badge--online .navbar__badge-dot {
-  background: var(--df-success);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-.navbar__badge--offline {
-  color: #fecaca;
-  border-color: rgba(239, 68, 68, 0.4);
-  background: var(--df-danger-soft);
-}
-
-.navbar__badge--offline .navbar__badge-dot {
-  background: var(--df-danger);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-}
-
-.navbar__badge--checking {
-  color: var(--df-text-muted);
-}
-
-.navbar__badge--checking .navbar__badge-dot {
-  background: var(--df-warning);
-  animation: df-pulse 1.2s ease-in-out infinite;
-}
-
-
 /* Page shared */
 
 .page {
@@ -2185,47 +2112,6 @@ button:disabled,
 .settings-refresh-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-
-.settings-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 600;
-}
-
-.settings-status__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--df-text-subtle);
-}
-
-.settings-status--online {
-  color: #6ee7b7;
-}
-
-.settings-status--online .settings-status__dot {
-  background: var(--df-success);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-.settings-status--offline {
-  color: #fecaca;
-}
-
-.settings-status--offline .settings-status__dot {
-  background: var(--df-danger);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-}
-
-.settings-status--checking {
-  color: var(--df-text-muted);
-}
-
-.settings-status--checking .settings-status__dot {
-  background: var(--df-warning);
-  animation: df-pulse 1.2s ease-in-out infinite;
 }
 
 @media (max-width: 960px) {

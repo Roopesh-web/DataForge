@@ -79,7 +79,6 @@ Output: `frontend/dist/`
 - [ ] `dist/` contains `index.html`, hashed assets, favicon, `_redirects` / `.htaccess`
 - [ ] Hard-refresh `/` loads the app
 - [ ] Direct navigation to `/upload` and `/settings` works (SPA fallback)
-- [ ] Navbar shows **API Online** against the deployed backend
 - [ ] Upload → Overview → Analytics flow works end-to-end
 
 ## Scripts
@@ -107,6 +106,5 @@ Output: `frontend/dist/`
 ## Architecture notes
 
 - Pages are lazy-loaded for smaller initial bundles.
-- API health is polled once via a shared `HealthProvider`.
 - Dataset state lives in `DatasetContext`.
 - No API base URL is hardcoded for production; configure `VITE_API_URL` at build time.
